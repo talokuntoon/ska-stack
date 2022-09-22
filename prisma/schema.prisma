@@ -1,38 +1,2984 @@
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-
 generator client {
   provider = "prisma-client-js"
 }
 
-model User {
-  id    String @id @default(cuid())
-  email String @unique
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  password Password?
-  notes    Note[]
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
 }
 
-model Password {
-  hash String
+model access_token {
+  id          BigInt  @id @default(autoincrement())
+  subvisit_id BigInt
+  hash        String  @unique(map: "hash") @db.VarChar(767)
+  has_used    Boolean @default(false)
 
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  userId String @unique
+  @@index([has_used], map: "has_used")
+  @@index([hash], map: "hash_2")
+  @@index([subvisit_id], map: "subvisit_id")
 }
 
-model Note {
-  id    String @id @default(cuid())
-  title String
-  body  String
+model announcement {
+  id          Int      @id @default(autoincrement())
+  type        String   @db.VarChar(20)
+  title       String   @db.TinyText
+  description String   @db.Text
+  start       DateTime @db.Date
+  end         DateTime @db.Date
+}
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model bonus_type {
+  id          BigInt        @id @default(autoincrement())
+  name        String        @db.VarChar(255)
+  percent     Float
+  sale_shares sale_shares[] @ignore
+  user_bonus  user_bonus[]
+}
 
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  userId String
+model buffered_invoice {
+  id                    BigInt    @id @default(autoincrement())
+  product_vendor_id     BigInt
+  procountor_invoice_id BigInt?
+  author_id             BigInt?
+  text                  String?   @db.Text
+  period_start          DateTime  @db.DateTime(0)
+  period_end            DateTime  @db.DateTime(0)
+  final                 Boolean   @default(false)
+  sent_at               DateTime? @db.DateTime(0)
+}
+
+model buffered_invoice_product_row {
+  id                  BigInt       @id @default(autoincrement())
+  buffered_invoice_id BigInt
+  product_row_id      BigInt?      @unique(map: "product_row_id")
+  product_row_version Int?
+  discount_percentage Decimal?     @db.Decimal(5, 2)
+  name                String?      @db.VarChar(80)
+  comment             String?      @db.VarChar(255)
+  quantity            Float?       @db.Float
+  unit_price          Float?       @db.Float
+  vat_id              BigInt?
+  product_row         product_row? @relation(fields: [product_row_id], references: [id], map: "buffered_invoice_product_row_ibfk_1")
+
+  @@index([buffered_invoice_id], map: "buffered_invoice_id")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model calendar_sync_settings {
+  key_id String @db.VarChar(255)
+  order  BigInt
+  name   String @db.VarChar(255)
+  value  String @db.VarChar(255)
+
+  @@ignore
+}
+
+model car {
+  id                      BigInt             @id @default(autoincrement())
+  register_number         String             @db.VarChar(50)
+  code                    String?            @db.VarChar(255)
+  external_code           String?            @db.VarChar(255)
+  name                    String             @db.VarChar(50)
+  date_introduction       String?            @db.VarChar(50)
+  date_inspected          String?            @db.VarChar(50)
+  color                   String             @default("") @db.VarChar(50)
+  model_year              String             @db.VarChar(50)
+  km_measurement          String?            @db.VarChar(50)
+  admin_id                BigInt
+  previous_maintenance_km String?            @db.VarChar(50)
+  previous_oil_change_km  String?            @db.VarChar(50)
+  maintenance_email       String?            @db.VarChar(50)
+  oil_change_km           String?            @default("15000") @db.VarChar(50)
+  maintenance_km          String?            @default("30000") @db.VarChar(50)
+  tire_change_winter_date String             @default("") @db.VarChar(50)
+  tire_change_summer_date String             @default("") @db.VarChar(50)
+  current_tires           Boolean
+  information             String?            @db.Text
+  defect_entries          String?            @db.Text
+  logo_id                 BigInt?
+  permission              BigInt             @default(0)
+  active                  Int                @default(1)
+  deleted_at              DateTime?          @db.DateTime(0)
+  next_inspection         String?            @db.VarChar(50)
+  car_error_log           car_error_log[]
+  car_expertise           car_expertise[]
+  journal                 journal[]
+  organization_car        organization_car[]
+  unit_version            unit_version[]
+}
+
+model car_error_log {
+  id         BigInt    @id @default(autoincrement())
+  label      String    @db.VarChar(255)
+  error      String    @db.VarChar(50)
+  message    String    @db.VarChar(255)
+  created_at DateTime? @db.DateTime(0)
+  ref        BigInt
+  car        car       @relation(fields: [ref], references: [id], onDelete: Cascade, map: "car_error_log_ibfk_1")
+
+  @@index([ref], map: "ref")
+}
+
+model car_expertise {
+  car_id       BigInt
+  expertise_id BigInt
+  car          car       @relation(fields: [car_id], references: [id], onUpdate: Restrict, map: "car_expertise_ibfk_1")
+  expertise    expertise @relation(fields: [expertise_id], references: [id], onUpdate: Restrict, map: "car_expertise_ibfk_2")
+
+  @@id([car_id, expertise_id])
+  @@index([expertise_id], map: "expertise_id")
+}
+
+model car_location {
+  id            BigInt    @id @default(autoincrement())
+  car_id        BigInt
+  time          DateTime? @db.DateTime(0)
+  connected     DateTime? @db.DateTime(0)
+  currentstatus String?   @db.VarChar(255)
+  speed         BigInt?
+  heading       BigInt?
+  longitude     String?   @db.VarChar(255)
+  latitude      String?   @db.VarChar(255)
+  last_updated  DateTime? @db.DateTime(0)
+}
+
+model certificate {
+  id               BigInt             @id @default(autoincrement())
+  name             String             @db.TinyText
+  description      String?            @db.Text
+  validity_period  Int?
+  user_certificate user_certificate[] @ignore
+}
+
+model comment {
+  id                BigInt              @id @default(autoincrement())
+  author_id         BigInt?
+  text              String              @db.VarChar(255)
+  type              BigInt?
+  created_at        DateTime?           @db.DateTime(0)
+  user              user?               @relation(fields: [author_id], references: [id], onDelete: Cascade, map: "comment_ibfk_2")
+  user_comment_read user_comment_read[]
+
+  @@index([author_id], map: "author_id")
+  @@index([author_id], map: "product_row_id")
+}
+
+model comment_product_row {
+  id             BigInt      @id @default(0)
+  product_row_id BigInt
+  product_row    product_row @relation(fields: [product_row_id], references: [id], onDelete: Cascade, map: "comment_product_row_ibfk_1")
+
+  @@index([product_row_id], map: "product_row_id")
+}
+
+model comment_reminders {
+  id         BigInt  @id @default(autoincrement())
+  comment_id BigInt?
+  user_id    BigInt?
+}
+
+model comment_sub_visit {
+  id           BigInt    @id @default(0)
+  sub_visit_id BigInt
+  sub_visit    sub_visit @relation(fields: [sub_visit_id], references: [id], onDelete: Cascade, map: "comment_sub_visit_ibfk_1")
+
+  @@index([sub_visit_id], map: "sub_visit_id")
+}
+
+model condonium {
+  id     BigInt   @id @default(autoincrement())
+  name   String   @db.VarChar(255)
+  target target[]
+}
+
+model contract {
+  id                                      BigInt                   @id @default(autoincrement())
+  contract_id                             Int?
+  invoice_entity_id                       BigInt?
+  author_id                               BigInt?
+  customer_id                             BigInt?
+  payer_id                                BigInt?
+  organization_id                         BigInt?
+  target_id                               BigInt?
+  created_at                              DateTime?                @db.DateTime(0)
+  updated_at                              DateTime?                @db.DateTime(0)
+  deleted_at                              DateTime?                @db.DateTime(0)
+  hash                                    String?                  @db.VarChar(255)
+  target                                  target?                  @relation(fields: [target_id], references: [id], onUpdate: SetNull, map: "contract_ibfk_1")
+  user                                    user?                    @relation(fields: [author_id], references: [id], onUpdate: SetNull, map: "contract_ibfk_2")
+  customer_contract_customer_idTocustomer customer?                @relation("contract_customer_idTocustomer", fields: [customer_id], references: [id], onUpdate: SetNull, map: "contract_ibfk_3")
+  customer_contract_payer_idTocustomer    customer?                @relation("contract_payer_idTocustomer", fields: [payer_id], references: [id], onUpdate: SetNull, map: "contract_ibfk_4")
+  organization                            organization?            @relation(fields: [organization_id], references: [id], onUpdate: SetNull, map: "contract_ibfk_5")
+  invoice_entity                          invoice_entity?          @relation(fields: [invoice_entity_id], references: [id], onDelete: Cascade, map: "contract_ibfk_7")
+  contract_internal_file                  contract_internal_file[]
+  invoice                                 invoice[]
+  procountor_invoice                      procountor_invoice[]
+  purchase_order                          purchase_order[]
+  support_case                            support_case[]
+  visit                                   visit[]
+
+  @@index([author_id], map: "author_id")
+  @@index([target_id], map: "contract_id")
+  @@index([customer_id], map: "customer_id")
+  @@index([invoice_entity_id], map: "invoice_entity_id")
+  @@index([organization_id], map: "organization_id")
+  @@index([payer_id], map: "payer_id")
+}
+
+model contract_comments {
+  id             BigInt     @id @unique(map: "id") @default(autoincrement())
+  contract_id    BigInt
+  author_id      BigInt?
+  type           String?    @db.VarChar(15)
+  date           DateTime?  @db.DateTime(0)
+  text           String?    @db.Text
+  has_reminder   Boolean?
+  checked        Boolean?
+  remind_date    DateTime?  @db.DateTime(0)
+  parent_id      BigInt?
+  signer_id      BigInt?
+  checked_date   DateTime?  @db.DateTime(0)
+  send_to        String?    @db.TinyText
+  email_subject  String?    @db.Text
+  send_to_number String?    @db.TinyText
+  response_hash  String?    @db.TinyText
+  sub_visit_id   BigInt?
+  sent_from_sms  Boolean?   @default(false)
+  sub_visit      sub_visit? @relation(fields: [sub_visit_id], references: [id], onDelete: Cascade, map: "contract_comments_ibfk_1")
+
+  @@index([sub_visit_id], map: "sub_visit_id")
+}
+
+model contract_file {
+  contract_id BigInt
+  file_id     BigInt
+
+  @@id([contract_id, file_id])
+}
+
+model contract_internal_file {
+  contract_id BigInt
+  file_id     BigInt
+  contract    contract @relation(fields: [contract_id], references: [id], onDelete: Cascade, map: "contract_internal_file_ibfk_1")
+  file        file     @relation(fields: [file_id], references: [id], onDelete: Cascade, map: "contract_internal_file_ibfk_2")
+
+  @@id([contract_id, file_id])
+  @@index([file_id], map: "file_id")
+}
+
+model contract_log {
+  id         BigInt    @id @default(autoincrement())
+  data       String?   @db.Text
+  created_at DateTime? @db.DateTime(0)
+}
+
+model contract_status {
+  id          BigInt  @id @default(0)
+  description String? @db.VarChar(255)
+}
+
+model contract_target_dynamic_parameters {
+  id                  BigInt @id @unique(map: "id") @default(autoincrement())
+  target_id           BigInt
+  dynamicparameter_id BigInt
+  value               String @db.Text
+}
+
+model county {
+  id          BigInt        @id @default(autoincrement())
+  name        String?       @db.VarChar(255)
+  post_number post_number[]
+}
+
+model custom_product_row {
+  id                           BigInt     @id @default(autoincrement())
+  sub_visit_id                 BigInt?
+  discount_percentage          BigInt?
+  custom_product_name          String     @db.VarChar(255)
+  custom_product_comment       String?    @db.Text
+  custom_product_price         BigInt
+  custom_product_quantity      Float      @db.Float
+  custom_product_quantity_real Float?     @db.Float
+  custom_product_length        BigInt?
+  sub_visit                    sub_visit? @relation(fields: [sub_visit_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "custom_product_row_ibfk_1")
+
+  @@index([sub_visit_id], map: "sub_visit_id_idx")
+}
+
+model customer {
+  id                                      BigInt           @id @default(0)
+  reference_number                        String?          @db.VarChar(255)
+  payment_condition                       String?          @db.VarChar(255)
+  invoice_type                            BigInt?
+  electronic_invoicing_address            String?          @db.VarChar(255)
+  secret                                  String?          @db.VarChar(255)
+  token                                   String?          @db.VarChar(255)
+  salt                                    String?          @db.VarChar(255)
+  status                                  Int?
+  status_id                               BigInt?
+  mute_notifications                      Boolean          @default(false)
+  customer_status                         customer_status? @relation(fields: [status_id], references: [id], onUpdate: Restrict, map: "customer_ibfk_1")
+  invoice_type_customerToinvoice_type     invoice_type?    @relation(fields: [invoice_type], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "customer_invoice_type_invoice_type_id")
+  contract_contract_customer_idTocustomer contract[]       @relation("contract_customer_idTocustomer")
+  contract_contract_payer_idTocustomer    contract[]       @relation("contract_payer_idTocustomer")
+  sub_target                              sub_target[]
+  target                                  target[]
+  user_version                            user_version[]
+  visit                                   visit[]
+
+  @@index([invoice_type], map: "invoice_type_idx")
+  @@index([status_id], map: "status_id")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model customer_migration_register {
+  address               String? @db.VarChar(150)
+  location              String? @db.VarChar(100)
+  customer_name         String? @db.VarChar(100)
+  phone                 String? @db.VarChar(20)
+  email                 String? @db.VarChar(250)
+  last_work_date        String? @db.VarChar(20)
+  last_worker_name      String? @db.VarChar(100)
+  recurring_interval    String? @db.VarChar(10)
+  recurred              String? @db.VarChar(100)
+  next_contact_date     String? @db.VarChar(20)
+  more_info             String? @db.VarChar(1000)
+  planned_start_time    String? @db.VarChar(20)
+  previous_work_message String? @db.VarChar(500)
+  custom_building_type  String? @db.VarChar(50)
+  boat_trip             String? @db.VarChar(10)
+
+  @@index([address, location, customer_name, phone, email], map: "search_helper")
+  @@ignore
+}
+
+model customer_status {
+  id       BigInt     @unique(map: "id") @default(autoincrement())
+  name     String?    @db.VarChar(255)
+  customer customer[]
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model disk_space_log {
+  size      BigInt
+  used      BigInt
+  available BigInt
+  time      DateTime @default(now()) @db.Timestamp(0)
+
+  @@ignore
+}
+
+model distance_matrix {
+  id                                                           BigInt      @id @default(autoincrement())
+  distance                                                     String?     @db.VarChar(255)
+  duration                                                     String?     @db.VarChar(255)
+  primary_number                                               String?     @db.VarChar(255)
+  secondary_number                                             String?     @db.VarChar(255)
+  primary_number_id                                            BigInt
+  secondary_number_id                                          BigInt
+  post_number_distance_matrix_primary_number_idTopost_number   post_number @relation("distance_matrix_primary_number_idTopost_number", fields: [primary_number_id], references: [id], onDelete: Cascade, map: "distance_matrix_ibfk_1")
+  post_number_distance_matrix_secondary_number_idTopost_number post_number @relation("distance_matrix_secondary_number_idTopost_number", fields: [secondary_number_id], references: [id], onDelete: Cascade, map: "distance_matrix_ibfk_2")
+
+  @@index([primary_number], map: "primary_number")
+  @@index([primary_number_id, secondary_number_id], map: "primary_number_id")
+  @@index([secondary_number], map: "secondary_number")
+  @@index([secondary_number_id], map: "secondary_number_id")
+}
+
+model distance_matrix_2 {
+  place_id_a String   @db.VarChar(255)
+  place_id_b String   @db.VarChar(255)
+  distance   Int
+  duration   Int
+  updated_at DateTime @default(now()) @db.DateTime(0)
+
+  @@id([place_id_a, place_id_b])
+  @@index([place_id_b], map: "place_id_b")
+}
+
+model district {
+  id                      BigInt                    @id @default(autoincrement())
+  name                    String?                   @db.VarChar(255)
+  organization_id         BigInt
+  permission              BigInt                    @default(0)
+  district_error_log      district_error_log[]
+  district_product_factor district_product_factor[] @ignore
+  organization_district   organization_district[]   @ignore
+  purchase_order          purchase_order[]
+  unit_district           unit_district[]
+
+  @@index([organization_id], map: "organization_id")
+}
+
+model district_area {
+  id           BigInt @id @default(autoincrement())
+  district_id  BigInt
+  type         BigInt
+  lower_limit  String @db.VarChar(32)
+  higher_limit String @db.VarChar(32)
+}
+
+model district_error_log {
+  id         BigInt    @id @default(autoincrement())
+  label      String    @db.VarChar(255)
+  error      String    @db.VarChar(50)
+  message    String    @db.VarChar(255)
+  created_at DateTime? @db.DateTime(0)
+  ref        BigInt
+  district   district  @relation(fields: [ref], references: [id], onDelete: Cascade, map: "district_error_log_ibfk_1")
+
+  @@index([ref], map: "ref")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model district_product_factor {
+  district_id        BigInt
+  product_id         BigInt?
+  product_version_id BigInt?
+  factor             Decimal          @default(0.000000) @db.Decimal(10, 6)
+  updated_at         DateTime         @default(now()) @db.Timestamp(0)
+  district           district         @relation(fields: [district_id], references: [id], onDelete: Cascade, map: "district_product_factor_ibfk_1")
+  product            product?         @relation(fields: [product_id], references: [id], onDelete: Cascade, map: "district_product_factor_ibfk_2")
+  product_version    product_version? @relation(fields: [product_version_id], references: [id], onDelete: Cascade, map: "district_product_factor_ibfk_3")
+
+  @@unique([district_id, product_id], map: "district_id")
+  @@index([product_id], map: "product_id")
+  @@index([product_version_id], map: "product_version_id")
+  @@ignore
+}
+
+model dynamic_parameters {
+  id                         BigInt                       @id @default(autoincrement())
+  parametername              String                       @db.VarChar(255)
+  parametervariable          String                       @db.VarChar(200)
+  parametervalue             String                       @db.VarChar(255)
+  parametertype              String                       @db.VarChar(200)
+  parameterdescription       String?                      @db.Text
+  parameterpdfvisible        Boolean                      @default(false)
+  parametertext              String?                      @db.Text
+  parameterunit              String?                      @db.VarChar(10)
+  order_handle               String?                      @db.VarChar(32)
+  deleted_at                 DateTime?                    @db.DateTime(0)
+  subtarget_dynamicparameter subtarget_dynamicparameter[]
+}
+
+model einvoice_operators {
+  id          Int    @id @default(autoincrement())
+  name        String @db.VarChar(128)
+  operator_id String @db.VarChar(128)
+}
+
+model email_messages {
+  id        Int       @id @unique(map: "id") @default(autoincrement())
+  uid       Int
+  from_user String?   @db.VarChar(255)
+  to_user   String    @db.VarChar(255)
+  title     String    @db.VarChar(255)
+  timestamp DateTime? @db.DateTime(0)
+  message   String    @db.Text
+}
+
+model email_settings {
+  id                Int     @id @unique(map: "id") @default(autoincrement())
+  company_id        BigInt?
+  client_email      String? @unique(map: "client_email") @db.VarChar(255)
+  client_password   String? @db.VarChar(512)
+  client_host       String? @db.VarChar(255)
+  client_port       Int?
+  emailpass         String  @db.VarChar(512)
+  imap_status       Int?
+  treated_box       String? @db.VarChar(20)
+  connection_status String? @db.VarChar(255)
+}
+
+model entity {
+  id             BigInt  @id @default(autoincrement())
+  firstname      String? @db.VarChar(255)
+  lastname       String? @db.VarChar(255)
+  company        String? @db.VarChar(255)
+  street_address String? @db.VarChar(255)
+  post_office    String? @db.VarChar(255)
+  postal_code    String? @db.VarChar(5)
+  country        String? @db.VarChar(100)
+  phone_number   String? @db.VarChar(20)
+  email          String? @db.VarChar(254)
+  type           Int?
+
+  @@index([type])
+}
+
+model expertise {
+  id                 BigInt               @id @default(autoincrement())
+  name               String               @db.VarChar(255)
+  requirements       String?              @db.Text
+  permission         BigInt               @default(0)
+  last_modified      DateTime             @db.DateTime(0)
+  created_at         DateTime             @db.DateTime(0)
+  car_expertise      car_expertise[]
+  product_expertise  product_expertise[]
+  question_expertise question_expertise[] @ignore
+  unit_expertise     unit_expertise[]
+  user_expertise     user_expertise[]
+}
+
+model expertise_question {
+  id                        BigInt                      @id @default(autoincrement())
+  priority                  Int
+  text                      String?                     @db.Text
+  image_id                  BigInt?
+  expertise_question_answer expertise_question_answer[]
+  question_expertise        question_expertise[]        @ignore
+}
+
+model expertise_question_answer {
+  id                 BigInt              @id @default(autoincrement())
+  question_id        BigInt?
+  text               String?             @db.VarChar(255)
+  correct            Boolean             @default(false)
+  expertise_question expertise_question? @relation(fields: [question_id], references: [id], onDelete: Cascade, map: "expertise_question_answer_ibfk_1")
+
+  @@index([question_id], map: "question_id")
+}
+
+model expertise_user_answers {
+  id          BigInt  @id @default(autoincrement())
+  user_id     BigInt?
+  question_id BigInt?
+  answer      String? @db.Text
+}
+
+model file {
+  id                     BigInt                   @id @default(autoincrement())
+  name                   String                   @db.VarChar(255)
+  filename               String                   @db.VarChar(255)
+  date_created           DateTime                 @db.DateTime(0)
+  copy_of                BigInt?
+  share_id               String?                  @db.TinyText
+  file                   file?                    @relation("fileTofile", fields: [copy_of], references: [id], onDelete: Cascade, map: "file_ibfk_1")
+  contract_internal_file contract_internal_file[]
+  other_file             file[]                   @relation("fileTofile")
+  message_files          message_files[]
+  product_row_file       product_row_file[]       @ignore
+  sub_visit_file         sub_visit_file[]         @ignore
+  sub_visit_image_new    sub_visit_image_new[]
+  visit_file             visit_file[]             @ignore
+
+  @@index([copy_of], map: "copy_of")
+}
+
+model frontpage_settings {
+  id         BigInt    @id @default(autoincrement())
+  user_id    BigInt?
+  author_id  BigInt?
+  begin_date DateTime? @db.DateTime(0)
+  end_date   DateTime? @db.DateTime(0)
+}
+
+model global_setting {
+  key_id String @id @unique(map: "key_id") @db.VarChar(255)
+  order  BigInt
+  name   String @db.VarChar(255)
+  value  String @db.VarChar(255)
+}
+
+model global_variables {
+  id          Int       @id @default(autoincrement())
+  name        String    @db.VarChar(30)
+  type        String    @default("number") @db.VarChar(20)
+  value       String    @db.VarChar(50)
+  valid_from  DateTime  @default(now()) @db.DateTime(0)
+  valid_until DateTime? @db.DateTime(0)
+}
+
+model hvac_system {
+  id         BigInt       @id @default(0)
+  name       String?      @db.VarChar(255)
+  sub_target sub_target[]
+}
+
+model image {
+  id              BigInt            @id @default(autoincrement())
+  name            String            @db.VarChar(255)
+  filename        String            @db.VarChar(255)
+  date_created    String            @db.VarChar(255)
+  organization    organization[]
+  product_version product_version[]
+  user_version    user_version[]
+}
+
+model invoice {
+  id                   BigInt                @id @default(autoincrement())
+  reimbursement        Boolean?              @default(false)
+  message              String?               @db.VarChar(255)
+  email                String?               @db.VarChar(255)
+  payer                String?               @db.VarChar(255)
+  reference            String?               @db.VarChar(255)
+  address              String?               @db.VarChar(255)
+  phone_number         String?               @db.VarChar(255)
+  post_number          String?               @db.VarChar(255)
+  post_office          String?               @db.VarChar(255)
+  description          String?               @db.Text
+  our_reference        String?               @db.VarChar(255)
+  your_reference       String?               @db.VarChar(255)
+  penalty_intrest      String?               @db.VarChar(255)
+  notice_period        String?               @db.VarChar(255)
+  reimbursement_number Int?                  @default(0)
+  invoicee_id          BigInt?
+  date                 DateTime?             @db.DateTime(0)
+  date_modified        DateTime?             @db.DateTime(0)
+  sent                 DateTime?             @db.DateTime(0)
+  deleted_on           DateTime?             @db.DateTime(0)
+  terms_of_payment     BigInt?
+  products_hash        String?               @db.VarChar(255)
+  status_id            BigInt?
+  invoice_type_id      BigInt?
+  contract_id          BigInt?
+  parent_invoice_id    BigInt?
+  organization_id      BigInt?
+  version              BigInt?
+  invoice_type         invoice_type?         @relation(fields: [invoice_type_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "invoice_ibfk_1")
+  organization         organization?         @relation(fields: [organization_id], references: [id], onUpdate: SetNull, map: "invoice_ibfk_4")
+  contract             contract?             @relation(fields: [contract_id], references: [id], onUpdate: SetNull, map: "invoice_ibfk_6")
+  invoice_row          invoice_row[]
+  invoice_version      invoice_version[]
+  sub_visit            sub_visit[]
+  sub_visit_version    sub_visit_version[]
+  transaction_invoice  transaction_invoice[]
+
+  @@index([contract_id], map: "invoice_ibfk_3")
+  @@index([invoice_type_id], map: "invoice_type_id")
+  @@index([organization_id], map: "organization_id")
+  @@index([parent_invoice_id], map: "parent_invoice_id")
+}
+
+model invoice_entity {
+  id                 BigInt               @id @default(autoincrement())
+  company_id         String?              @db.VarChar(24)
+  company_vat_id     String?              @db.VarChar(255)
+  pay_term           String?              @db.VarChar(255)
+  channel            Boolean              @default(true)
+  einvoice_address   String?              @db.VarChar(255)
+  operator_id        String?              @db.VarChar(255)
+  reverse_vat        Boolean?
+  auto_invoice       Int                  @default(1)
+  proco_auto_send    Int                  @default(1)
+  invoice_message    String?              @db.TinyText
+  net_pricing        Boolean?             @default(false)
+  contract           contract[]
+  invoice_entity_row invoice_entity_row[]
+  sub_visit          sub_visit[]
+  sub_visit_version  sub_visit_version[]
+  user_version       user_version[]
+}
+
+model invoice_entity_row {
+  id                                                BigInt          @id @default(autoincrement())
+  invoice_entity                                    BigInt?
+  created_at                                        DateTime        @default(now()) @db.DateTime(0)
+  invoice_entity_invoice_entityToinvoice_entity_row invoice_entity? @relation(fields: [invoice_entity], references: [id], onUpdate: SetNull, map: "invoice_entity_row_ibfk_1")
+
+  @@index([invoice_entity], map: "invoice_entity")
+}
+
+model invoice_log {
+  id                         BigInt        @id @default(autoincrement())
+  sub_visit_id               BigInt?       @unique(map: "sub_visit_id_2")
+  sub_visit_name             String        @db.VarChar(255)
+  total                      Decimal       @db.Decimal(12, 2)
+  net_total                  Decimal       @db.Decimal(12, 2)
+  net_service_total          Decimal       @db.Decimal(12, 2)
+  net_physical_product_total Decimal       @db.Decimal(12, 2)
+  net_extra_sales            Decimal       @default(0.00) @db.Decimal(12, 2)
+  pure_total                 Decimal?      @db.Decimal(12, 2)
+  net_pure_total             Decimal?      @db.Decimal(12, 2)
+  service_net_pure_total     Decimal?      @db.Decimal(12, 2)
+  product_net_pure_total     Decimal?      @db.Decimal(12, 2)
+  created_at                 DateTime      @default(now()) @db.DateTime(0)
+  sub_visit                  sub_visit?    @relation(fields: [sub_visit_id], references: [id], map: "invoice_log_ibfk_1")
+  sale_shares                sale_shares[] @ignore
+
+  @@index([sub_visit_id], map: "sub_visit_id")
+}
+
+model invoice_pdf_settings {
+  key_id String @id @db.VarChar(255)
+  order  BigInt
+  name   String @db.VarChar(255)
+  value  String @db.Text
+}
+
+model invoice_procountor {
+  id BigInt @id @default(autoincrement())
+}
+
+model invoice_product_row {
+  id                  BigInt      @id @default(autoincrement())
+  invoice_row_id      BigInt
+  product_version_id  BigInt?
+  type                BigInt
+  vat                 BigInt      @default(2)
+  name                String?     @db.VarChar(18)
+  comment             String?     @db.Text
+  discount_percentage BigInt?
+  quantity            Float?      @db.Float
+  calculated_price    String?     @db.VarChar(18)
+  length              String?     @db.VarChar(18)
+  invoice_row         invoice_row @relation(fields: [invoice_row_id], references: [id], onDelete: Cascade, map: "invoice_product_row_ibfk_1")
+
+  @@index([invoice_row_id], map: "invoice_row_id")
+}
+
+model invoice_row {
+  id                  BigInt                @id @default(autoincrement())
+  invoice_id          BigInt?
+  description         String?               @db.Text
+  cost                Decimal?              @db.Decimal(11, 2)
+  version             BigInt?
+  sub_visit_id        BigInt?
+  products_hash       String?               @db.VarChar(255)
+  invoice             invoice?              @relation(fields: [invoice_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "invoice_row_ibfk_1")
+  sub_visit           sub_visit?            @relation(fields: [sub_visit_id], references: [id], onUpdate: NoAction, map: "invoice_row_ibfk_4")
+  invoice_product_row invoice_product_row[]
+
+  @@index([invoice_id], map: "invoice_id_idx")
+  @@index([sub_visit_id], map: "sub_visit_id_idx")
+}
+
+model invoice_row_version {
+  id          BigInt   @default(0)
+  invoice_id  BigInt?
+  description String?  @db.Text
+  cost        Decimal? @db.Decimal(11, 2)
+  version     BigInt   @default(0)
+
+  @@id([id, version])
+}
+
+model invoice_state {
+  id          BigInt  @id
+  name        String  @db.VarChar(32)
+  description String? @db.VarChar(255)
+  visit       visit[]
+}
+
+model invoice_status {
+  id          BigInt  @id @default(0)
+  name        String  @db.VarChar(32)
+  description String? @db.VarChar(255)
+}
+
+model invoice_type {
+  id         BigInt       @id @default(0)
+  typename   String?      @db.VarChar(255)
+  customer   customer[]
+  invoice    invoice[]
+  sub_target sub_target[]
+}
+
+model invoice_version {
+  id                   BigInt    @default(0)
+  reimbursement        Boolean?  @default(false)
+  reimbursement_number Int?
+  message              String?   @db.VarChar(255)
+  payer                String?   @db.VarChar(255)
+  reference            String?   @db.VarChar(255)
+  address              String?   @db.VarChar(255)
+  phone_number         String?   @db.VarChar(255)
+  post_number          Int?
+  post_office          String?   @db.VarChar(255)
+  description          String?   @db.Text
+  invoicee_id          BigInt?
+  date                 DateTime? @db.DateTime(0)
+  date_modified        DateTime? @db.DateTime(0)
+  sent                 DateTime? @db.DateTime(0)
+  deleted_on           DateTime? @db.DateTime(0)
+  terms_of_payment     BigInt?
+  products_hash        String?   @db.VarChar(255)
+  status_id            BigInt?
+  contract_id          BigInt?
+  parent_invoice_id    BigInt?
+  version              BigInt    @default(0)
+  invoice              invoice   @relation(fields: [id], references: [id], onDelete: Cascade, map: "invoice_version_id_invoice_id")
+
+  @@id([id, version])
+}
+
+model journal {
+  id            BigInt          @id @default(autoincrement())
+  car_id        BigInt
+  updated_at    DateTime        @db.DateTime(0)
+  created_at    DateTime        @db.DateTime(0)
+  car           car             @relation(fields: [car_id], references: [id], onUpdate: Restrict, map: "journal_ibfk_1")
+  journal_entry journal_entry[]
+
+  @@index([car_id], map: "car_id")
+}
+
+model journal_entry {
+  id           BigInt        @id @default(autoincrement())
+  external_id  BigInt?
+  journal_id   BigInt
+  author_id    BigInt?
+  leaving_time DateTime?     @db.DateTime(0)
+  arrival_time DateTime      @db.DateTime(0)
+  purpose      String?       @db.Text
+  longitude    String        @db.VarChar(255)
+  latitude     String        @db.VarChar(255)
+  odometer     String        @db.VarChar(255)
+  location     String?       @db.VarChar(255)
+  distance     String?       @db.VarChar(255)
+  checked      Boolean       @default(false)
+  created_at   DateTime      @db.DateTime(0)
+  user_version user_version? @relation(fields: [author_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "journal_entry_ibfk_2")
+  journal      journal       @relation(fields: [journal_id], references: [id], onUpdate: Restrict, map: "journal_entry_ibfk_3")
+
+  @@index([author_id], map: "author_id")
+  @@index([journal_id], map: "car_id")
+  @@index([journal_id], map: "journal_id")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model ledger_setting {
+  key_id String @db.VarChar(255)
+  order  Int
+  name   String @db.VarChar(255)
+  value  String @db.VarChar(255)
+
+  @@ignore
+}
+
+model location {
+  id              BigInt  @id @default(autoincrement())
+  place_id        String? @db.TinyText
+  parent_place_id String? @db.VarChar(255)
+  lat             Decimal @db.Decimal(17, 14)
+  lng             Decimal @db.Decimal(17, 14)
+  geocode         String  @db.TinyText
+  name            String  @default("") @db.TinyText
+  custom_name     String? @db.VarChar(128)
+  type            String  @db.VarChar(20)
+}
+
+model lvis_net_product {
+  lvi_code          String         @unique(map: "lvi_code") @db.VarChar(10)
+  product_vendor_id BigInt
+  name              String         @db.VarChar(35)
+  name_alt          String         @default("") @db.VarChar(35)
+  brand             String         @default("") @db.VarChar(20)
+  price             Decimal        @db.Decimal(18, 2)
+  retail_price      Decimal        @db.Decimal(18, 2)
+  vat_id            BigInt?
+  unit              String         @db.VarChar(3)
+  effective_from    DateTime?      @db.DateTime(0)
+  product_vendor    product_vendor @relation(fields: [product_vendor_id], references: [id], onDelete: Cascade, map: "lvis_net_product_ibfk_1")
+  vat               vat?           @relation(fields: [vat_id], references: [id], map: "lvis_net_product_ibfk_2")
+
+  @@id([lvi_code, product_vendor_id])
+  @@index([product_vendor_id], map: "product_vendor_id")
+  @@index([lvi_code, name, name_alt, brand], map: "search_index")
+  @@index([vat_id], map: "vat_id")
+}
+
+model maintenance_entry {
+  id         BigInt   @id @default(autoincrement())
+  title      String?  @db.VarChar(255)
+  start_date DateTime @db.DateTime(0)
+  end_date   DateTime @db.DateTime(0)
+  text       String?  @db.Text
+  author_id  BigInt
+  created_at DateTime @db.DateTime(0)
+  user       user     @relation(fields: [author_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "maintenance_entry_ibfk_1")
+
+  @@index([author_id], map: "author_id")
+}
+
+model message {
+  id                           BigInt          @id @default(autoincrement())
+  author_id                    BigInt?
+  support_case_id              BigInt?
+  text                         String          @db.Text
+  created_at                   DateTime        @default(now()) @db.DateTime(0)
+  closed_at                    DateTime?       @db.DateTime(0)
+  closer_id                    BigInt?
+  deadline                     DateTime?       @db.DateTime(0)
+  urgent                       Boolean         @default(false)
+  user_message_author_idTouser user?           @relation("message_author_idTouser", fields: [author_id], references: [id], map: "message_ibfk_1")
+  support_case                 support_case?   @relation(fields: [support_case_id], references: [id], onDelete: Cascade, map: "message_ibfk_2")
+  user_message_closer_idTouser user?           @relation("message_closer_idTouser", fields: [closer_id], references: [id], map: "message_ibfk_3")
+  message_files                message_files[]
+
+  @@index([author_id], map: "author_id")
+  @@index([closer_id], map: "closer_id")
+  @@index([support_case_id], map: "support_case_id")
+}
+
+model message_files {
+  message_id BigInt
+  file_id    BigInt
+  message    message @relation(fields: [message_id], references: [id], onDelete: Cascade, map: "message_files_ibfk_1")
+  file       file    @relation(fields: [file_id], references: [id], onDelete: Cascade, map: "message_files_ibfk_2")
+
+  @@id([message_id, file_id])
+  @@index([file_id], map: "file_id")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model offer_reminder_delay {
+  delayed_on      DateTime      @db.Date
+  organization_id BigInt?
+  organization    organization? @relation(fields: [organization_id], references: [id], onDelete: Cascade, map: "offer_reminder_delay_ibfk_1")
+
+  @@index([organization_id], map: "organization_id")
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model offer_reminders {
+  sub_visit_id BigInt
+  time         DateTime  @default(now()) @db.DateTime(0)
+  sub_visit    sub_visit @relation(fields: [sub_visit_id], references: [id], onDelete: Cascade, map: "offer_reminders_ibfk_1")
+
+  @@index([sub_visit_id], map: "sub_visit_id")
+  @@ignore
+}
+
+model offer_status {
+  id                BigInt              @id @default(autoincrement())
+  name              String              @db.VarChar(255)
+  description       String              @db.VarChar(255)
+  sub_visit         sub_visit[]
+  sub_visit_version sub_visit_version[]
+}
+
+model organization {
+  id                              BigInt                           @id @default(autoincrement())
+  contract_id                     BigInt?
+  menu_order                      BigInt?
+  version                         BigInt                           @default(1)
+  name                            String?                          @db.VarChar(255)
+  company                         String?                          @db.VarChar(255)
+  company_code                    String?                          @db.VarChar(255)
+  address                         String?                          @db.VarChar(50)
+  city                            String?                          @db.VarChar(50)
+  postal_code                     String?                          @db.VarChar(10)
+  postal_box                      String?                          @db.VarChar(10)
+  country                         String?                          @db.VarChar(50)
+  default_color                   String?                          @default("#009ACB") @db.VarChar(50)
+  show_expertise_questions        Int                              @default(1)
+  ledger_account_number           String?                          @db.VarChar(50)
+  ledger_bank_name                String?                          @db.VarChar(255)
+  ledger_bic                      String?                          @db.VarChar(255)
+  ledger_username                 String?                          @db.VarChar(50)
+  ledger_password                 String?                          @db.VarChar(50)
+  ledger_password_salt            String?                          @db.VarChar(255)
+  invoice_address                 String?                          @db.VarChar(255)
+  invoice_postal_code             String?                          @db.VarChar(255)
+  invoice_location                String?                          @db.VarChar(255)
+  billing_address                 String?                          @db.VarChar(255)
+  billing_operator                String?                          @db.VarChar(255)
+  billing_operator_broker_code    String?                          @db.VarChar(255)
+  email_billing                   String?                          @db.VarChar(255)
+  email                           String?                          @db.VarChar(255)
+  email_copy                      String?                          @db.VarChar(255)
+  phone_number                    String?                          @db.VarChar(255)
+  logo_id                         BigInt?
+  document_author_id              BigInt?
+  permission                      BigInt                           @default(0)
+  maximum_driving_time            BigInt                           @default(20)
+  image_white_id                  BigInt?
+  image_black_id                  BigInt?
+  image_icon_id                   BigInt?
+  contract_terms                  String?                          @db.Text
+  proposal_message                String?                          @db.Text
+  order_message                   String?                          @db.Text
+  vendor_background               String?                          @db.Text
+  documentation                   String?                          @db.Text
+  timetable_message               String?                          @db.Text
+  preliminary_annoucement         String?                          @db.Text
+  email_message                   String?                          @db.Text
+  terms_of_payment                BigInt                           @default(7)
+  image_banner_id                 BigInt?
+  default_offer_validation_period BigInt                           @default(30)
+  image_banner_link               String?                          @db.Text
+  main_image_id                   String?                          @db.VarChar(255)
+  header_title                    String?                          @db.Text
+  main_text                       String?                          @db.Text
+  header_title2                   String?                          @db.VarChar(255)
+  main_text2                      String?                          @db.Text
+  second_title                    String?                          @db.VarChar(255)
+  second_text                     String?                          @db.Text
+  second_image_id                 BigInt?
+  third_title                     String?                          @db.VarChar(255)
+  third_text                      String?                          @db.Text
+  third_image_id                  String?                          @db.VarChar(255)
+  fourth_title                    String?                          @db.VarChar(255)
+  fourth_text                     String?                          @db.Text
+  white_logo_id                   BigInt?
+  text_color                      String?                          @db.VarChar(50)
+  fourth_image_id                 BigInt?
+  default_unit_id                 BigInt?
+  product_vendor_id               BigInt?
+  last_minute_discount            Boolean                          @default(false)
+  email_send_address              String?                          @db.VarChar(320)
+  email_reply_address             String?                          @db.VarChar(320)
+  email_sender_name               String?                          @db.VarChar(150)
+  cobranding_email                Boolean                          @default(false)
+  email_theme_color               String?                          @db.VarChar(7)
+  cobranding_subdomain            String?                          @db.TinyText
+  cobranding_link_color           String?                          @db.VarChar(7)
+  cobranding_company_name         String?                          @db.TinyText
+  cobranding_url                  String?                          @db.TinyText
+  salary_period_start_day         Int?                             @db.TinyInt
+  offer_reminder_interval         Int                              @default(1)
+  send_offer_reminder             Boolean                          @default(true)
+  light_cobranding                Boolean                          @default(false)
+  accountant_email                String?                          @db.VarChar(128)
+  cobranded_sms_sender            String?                          @db.VarChar(100)
+  cobranded_short_link            String?                          @db.VarChar(50)
+  show_phone_on_pdf               Boolean                          @default(false)
+  messages_to_office_email        String                           @default("") @db.VarChar(100)
+  separate_customer_register      Boolean                          @default(false)
+  limit_worker_rights             Boolean                          @default(false)
+  simplified_invoice              Boolean                          @default(false)
+  image                           image?                           @relation(fields: [logo_id], references: [id], onDelete: Cascade, map: "organization_ibfk_1")
+  unit                            unit?                            @relation(fields: [default_unit_id], references: [id], onUpdate: SetNull, map: "organization_ibfk_2")
+  product_vendor                  product_vendor?                  @relation(fields: [product_vendor_id], references: [id], map: "organization_ibfk_3")
+  contract                        contract[]
+  invoice                         invoice[]
+  offer_reminder_delay            offer_reminder_delay[]           @ignore
+  organization_car                organization_car[]
+  organization_direct_sales_user  organization_direct_sales_user[]
+  organization_district           organization_district[]          @ignore
+  organization_error_log          organization_error_log[]
+  organization_offer_reminder     organization_offer_reminder?
+  organization_user               organization_user[]
+  purchase_order                  purchase_order[]
+  stock                           stock[]
+  sub_visit                       sub_visit[]
+  user_version                    user_version[]
+  variable_organization           variable_organization[]          @ignore
+
+  @@index([contract_id], map: "contract_id")
+  @@index([logo_id], map: "logo_id_2")
+  @@index([default_unit_id], map: "organization_ibfk_2")
+  @@index([product_vendor_id], map: "product_vendor_id")
+}
+
+model organization_car {
+  car_id          BigInt
+  organization_id BigInt
+  car             car          @relation(fields: [car_id], references: [id], onUpdate: Restrict, map: "organization_car_ibfk_1")
+  organization    organization @relation(fields: [organization_id], references: [id], onUpdate: Restrict, map: "organization_car_ibfk_2")
+
+  @@id([car_id, organization_id])
+  @@index([organization_id], map: "organization_id")
+}
+
+model organization_direct_sales_user {
+  id              BigInt       @id @default(autoincrement())
+  organization_id BigInt
+  user_id         BigInt
+  start_time      DateTime     @default(now()) @db.DateTime(0)
+  end_time        DateTime?    @db.DateTime(0)
+  organization    organization @relation(fields: [organization_id], references: [id], onDelete: Cascade, map: "organization_direct_sales_user_ibfk_1")
+  user            user         @relation(fields: [user_id], references: [id], onDelete: Cascade, map: "organization_direct_sales_user_ibfk_2")
+
+  @@index([organization_id], map: "organization_id")
+  @@index([user_id], map: "user_id")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model organization_district {
+  organization_id BigInt
+  district_id     BigInt
+  organization    organization @relation(fields: [organization_id], references: [id], onDelete: Cascade, map: "organization_district_ibfk_1")
+  district        district     @relation(fields: [district_id], references: [id], onDelete: Cascade, map: "organization_district_ibfk_2")
+
+  @@index([district_id], map: "district_id")
+  @@index([organization_id], map: "organization_id")
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model organization_dynamicparameter {
+  id                  BigInt
+  organization_id     BigInt
+  dynamicparameter_id BigInt
+  default_value       String? @db.Text
+  parameter_type      BigInt?
+
+  @@ignore
+}
+
+model organization_error_log {
+  id           BigInt       @id @default(autoincrement())
+  label        String       @db.VarChar(255)
+  error        String       @db.VarChar(50)
+  message      String       @db.VarChar(255)
+  created_at   DateTime?    @db.DateTime(0)
+  ref          BigInt
+  organization organization @relation(fields: [ref], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "organization_error_log_ibfk_2")
+
+  @@index([ref], map: "ref")
+}
+
+model organization_offer_reminder {
+  id                BigInt       @id @default(autoincrement())
+  organization_id   BigInt       @unique(map: "organization_id")
+  email_sender      String       @db.VarChar(320)
+  email_sender_name String       @db.VarChar(150)
+  email_template    String       @db.Text
+  email_subject     String       @db.VarChar(998)
+  organization      organization @relation(fields: [organization_id], references: [id], onDelete: Cascade, map: "organization_offer_reminder_ibfk_1")
+
+  @@index([organization_id], map: "organization_offer_reminder_ibfk_1")
+}
+
+model organization_product {
+  organization_id BigInt
+  product_id      BigInt
+
+  @@id([organization_id, product_id])
+}
+
+model organization_sub_target_dynamicparameter {
+  organization_id     BigInt
+  dynamicparameter_id BigInt
+
+  @@id([organization_id, dynamicparameter_id])
+  @@index([dynamicparameter_id], map: "dynamicparameter_id")
+  @@index([organization_id, dynamicparameter_id], map: "organization_id")
+}
+
+model organization_target_dynamicparameter {
+  organization_id     BigInt
+  dynamicparameter_id BigInt
+
+  @@id([organization_id, dynamicparameter_id])
+  @@index([dynamicparameter_id], map: "dynamicparameter_id")
+  @@index([organization_id, dynamicparameter_id], map: "organization_id")
+}
+
+model organization_user {
+  user_version_id BigInt
+  organization_id BigInt
+  user_version    user_version @relation(fields: [user_version_id], references: [id], onUpdate: Restrict, map: "organization_user_ibfk_1")
+  organization    organization @relation(fields: [organization_id], references: [id], onUpdate: Restrict, map: "organization_user_ibfk_2")
+
+  @@id([user_version_id, organization_id])
+  @@index([organization_id], map: "organization_id")
+}
+
+model organization_version {
+  id                              BigInt  @default(autoincrement())
+  version                         BigInt  @default(1)
+  name                            String? @db.VarChar(255)
+  company                         String? @db.VarChar(255)
+  company_code                    String? @db.VarChar(255)
+  address                         String? @db.VarChar(50)
+  city                            String? @db.VarChar(50)
+  postal_code                     String? @db.VarChar(10)
+  postal_box                      String? @db.VarChar(10)
+  country                         String? @db.VarChar(50)
+  default_color                   String? @default("#009ACB") @db.VarChar(50)
+  show_expertise_questions        Int     @default(1)
+  ledger_account_number           String? @db.VarChar(50)
+  ledger_bank_name                String? @db.VarChar(255)
+  ledger_bic                      String? @db.VarChar(255)
+  ledger_username                 String? @db.VarChar(50)
+  ledger_password                 String? @db.VarChar(50)
+  ledger_password_salt            String? @db.VarChar(255)
+  invoice_address                 String? @db.VarChar(255)
+  invoice_postal_code             String? @db.VarChar(255)
+  invoice_location                String? @db.VarChar(255)
+  billing_address                 String? @db.VarChar(255)
+  billing_operator                String? @db.VarChar(255)
+  billing_operator_broker_code    String? @db.VarChar(255)
+  email_billing                   String? @db.VarChar(255)
+  email                           String? @db.VarChar(255)
+  email_copy                      String? @db.VarChar(255)
+  phone_number                    String? @db.VarChar(255)
+  logo_id                         BigInt?
+  document_author_id              BigInt?
+  permission                      BigInt  @default(0)
+  maximum_driving_time            BigInt  @default(20)
+  image_white_id                  BigInt?
+  image_black_id                  BigInt?
+  image_icon_id                   BigInt?
+  contract_terms                  String? @db.Text
+  proposal_message                String? @db.Text
+  order_message                   String? @db.Text
+  vendor_background               String? @db.Text
+  documentation                   String? @db.Text
+  timetable_message               String? @db.Text
+  preliminary_annoucement         String? @db.Text
+  email_message                   String? @db.Text
+  terms_of_payment                BigInt  @default(7)
+  image_banner_id                 BigInt?
+  default_offer_validation_period BigInt  @default(30)
+  image_banner_link               String? @db.Text
+  contract_id                     BigInt?
+  menu_order                      BigInt?
+  main_image_id                   String? @db.VarChar(255)
+  header_title                    String? @db.Text
+  main_text                       String? @db.Text
+  header_title2                   String? @db.VarChar(255)
+  fourth_image_id                 BigInt?
+  default_unit_id                 BigInt?
+  main_text2                      String? @db.Text
+  second_title                    String? @db.VarChar(255)
+  second_text                     String? @db.Text
+  second_image_id                 BigInt?
+  third_title                     String? @db.VarChar(255)
+  third_text                      String? @db.Text
+  third_image_id                  String? @db.VarChar(255)
+  fourth_title                    String? @db.VarChar(255)
+  fourth_text                     String? @db.Text
+  text_color                      String? @db.VarChar(50)
+  product_vendor_id               BigInt?
+  unit                            unit?   @relation(fields: [default_unit_id], references: [id], onUpdate: SetNull, map: "organization_version_ibfk_1")
+
+  @@id([id, version])
+  @@index([logo_id], map: "logo_id_2")
+  @@index([default_unit_id], map: "organization_version_ibfk_1")
+}
+
+model paavo_zip_codes {
+  FID             String  @id(length: 20) @db.TinyText
+  geom            String? @db.MediumText
+  postinumeroalue String? @db.TinyText
+  nimi            String? @db.TinyText
+  namn            String? @db.TinyText
+  euref_x         Int?
+  euref_y         Int?
+  pinta_ala       Int?
+  vuosi           Int?
+  kunta           Int?
+  he_vakiy        Int?
+  he_naiset       Int?
+  he_miehet       Int?
+  he_kika         Int?
+  he_0_2          Int?
+  he_3_6          Int?
+  he_7_12         Int?
+  he_13_15        Int?
+  he_16_17        Int?
+  he_18_19        Int?
+  he_20_24        Int?
+  he_25_29        Int?
+  he_30_34        Int?
+  he_35_39        Int?
+  he_40_44        Int?
+  he_45_49        Int?
+  he_50_54        Int?
+  he_55_59        Int?
+  he_60_64        Int?
+  he_65_69        Int?
+  he_70_74        Int?
+  he_75_79        Int?
+  he_80_84        Int?
+  he_85_          Int?
+  ko_ika18y       Int?
+  ko_perus        Int?
+  ko_koul         Int?
+  ko_yliop        Int?
+  ko_ammat        Int?
+  ko_al_kork      Int?
+  ko_yl_kork      Int?
+  hr_tuy          Int?
+  hr_ktu          Int?
+  hr_mtu          Int?
+  hr_pi_tul       Int?
+  hr_ke_tul       Int?
+  hr_hy_tul       Int?
+  hr_ovy          Int?
+  te_taly         Int?
+  te_takk         Float?  @db.Float
+  te_as_valj      Float?  @db.Float
+  te_yks          Int?
+  te_nuor         Int?
+  te_eil_np       Int?
+  te_laps         Int?
+  te_plap         Int?
+  te_aklap        Int?
+  te_klap         Int?
+  te_teini        Int?
+  te_yhlap        Int?
+  te_aik          Int?
+  te_elak         Int?
+  te_omis_as      Int?
+  te_vuok_as      Int?
+  te_muu_as       Int?
+  tr_kuty         Int?
+  tr_ktu          Int?
+  tr_mtu          Int?
+  tr_pi_tul       Int?
+  tr_ke_tul       Int?
+  tr_hy_tul       Int?
+  tr_ovy          Int?
+  ra_ke           Int?
+  ra_raky         Int?
+  ra_muut         Int?
+  ra_asrak        Int?
+  ra_asunn        Int?
+  ra_as_kpa       Float?  @db.Float
+  ra_pt_as        Int?
+  ra_kt_as        Int?
+  tp_tyopy        Int?
+  tp_alku_a       Int?
+  tp_jalo_bf      Int?
+  tp_palv_gu      Int?
+  tp_a_maat       Int?
+  tp_b_kaiv       Int?
+  tp_c_teol       Int?
+  tp_d_ener       Int?
+  tp_e_vesi       Int?
+  tp_f_rake       Int?
+  tp_g_kaup       Int?
+  tp_h_kulj       Int?
+  tp_i_majo       Int?
+  tp_j_info       Int?
+  tp_k_raho       Int?
+  tp_l_kiin       Int?
+  tp_m_erik       Int?
+  tp_n_hall       Int?
+  tp_o_julk       Int?
+  tp_p_koul       Int?
+  tp_q_terv       Int?
+  tp_r_taid       Int?
+  tp_s_muup       Int?
+  tp_t_koti       Int?
+  tp_u_kans       Int?
+  tp_x_tunt       Int?
+  pt_vakiy        Int?
+  pt_tyoll        Int?
+  pt_tyott        Int?
+  pt_0_14         Int?
+  pt_opisk        Int?
+  pt_elakel       Int?
+  pt_muut         Int?
+
+  @@index([postinumeroalue(length: 255)], map: "postinumeroalue")
+}
+
+model physical_product {
+  id BigInt @id @default(0)
+}
+
+model place {
+  id              BigInt       @id @default(autoincrement())
+  unit_version_id BigInt
+  user_id         BigInt?
+  unit_version    unit_version @relation(fields: [unit_version_id], references: [id], onDelete: Cascade, map: "place_ibfk_1")
+
+  @@index([unit_version_id], map: "unit_version_id")
+  @@index([user_id], map: "user_id")
+}
+
+model post_number {
+  id                                                               BigInt            @id @default(autoincrement())
+  number                                                           String?           @db.VarChar(255)
+  name                                                             String?           @db.VarChar(255)
+  lat                                                              String?           @db.VarChar(255)
+  lng                                                              String?           @db.VarChar(255)
+  county_id                                                        BigInt?
+  county                                                           county?           @relation(fields: [county_id], references: [id], onDelete: Cascade, map: "post_number_ibfk_1")
+  distance_matrix_distance_matrix_primary_number_idTopost_number   distance_matrix[] @relation("distance_matrix_primary_number_idTopost_number")
+  distance_matrix_distance_matrix_secondary_number_idTopost_number distance_matrix[] @relation("distance_matrix_secondary_number_idTopost_number")
+
+  @@index([county_id], map: "county_id")
+  @@index([number], map: "number")
+}
+
+model proco_invoice {
+  id                BigInt          @id @default(autoincrement())
+  product_vendor_id BigInt?
+  number            BigInt
+  json              String?         @db.Text
+  product_vendor    product_vendor? @relation(fields: [product_vendor_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "proco_invoice_ibfk_1")
+
+  @@index([product_vendor_id], map: "product_vendor_id")
+}
+
+model procountor_invoice {
+  id               BigInt    @id @default(autoincrement())
+  invoice_number   String?   @db.VarChar(255)
+  invoice_date     String?   @db.VarChar(255)
+  einvoice_address String?   @db.VarChar(255)
+  paid_total       String?   @db.VarChar(255)
+  contract_id      BigInt
+  visit_id         BigInt
+  subvisit_id      BigInt
+  contract         contract  @relation(fields: [contract_id], references: [id], onDelete: Cascade, map: "procountor_invoice_ibfk_1")
+  visit            visit     @relation(fields: [visit_id], references: [id], onDelete: Cascade, map: "procountor_invoice_ibfk_2")
+  sub_visit        sub_visit @relation(fields: [subvisit_id], references: [id], onDelete: Cascade, map: "procountor_invoice_ibfk_3")
+
+  @@index([contract_id], map: "contract_id")
+  @@index([subvisit_id], map: "subvisit_id")
+  @@index([visit_id], map: "visit_id")
+}
+
+model product {
+  id                      BigInt                    @id @default(autoincrement())
+  product_code            String?                   @db.VarChar(255)
+  type                    Int?
+  deleted_at              DateTime?                 @db.DateTime(0)
+  district_product_factor district_product_factor[] @ignore
+  product_vendor_products product_vendor_products[] @ignore
+  product_version         product_version[]
+  shopping_list_product   shopping_list_product[]
+  stock_product           stock_product[]
+
+  @@index([type])
+}
+
+model product_expertise {
+  product_version_id BigInt
+  expertise_id       BigInt
+  product_version    product_version @relation(fields: [product_version_id], references: [id], onDelete: Cascade, map: "product_expertise_ibfk_1")
+  expertise          expertise       @relation(fields: [expertise_id], references: [id], onDelete: Cascade, map: "product_expertise_ibfk_2")
+
+  @@id([product_version_id, expertise_id])
+  @@index([expertise_id], map: "expertise_id")
+}
+
+model product_group {
+  id              BigInt            @id @default(autoincrement())
+  name            String            @db.VarChar(255)
+  permission      BigInt            @default(0)
+  last_modified   DateTime          @db.DateTime(0)
+  created_at      DateTime          @db.DateTime(0)
+  product_version product_version[]
+}
+
+model product_row {
+  id                           BigInt                        @id @default(autoincrement())
+  sub_visit_id                 BigInt                        @default(0)
+  sub_visit_version            BigInt
+  product_version_id           BigInt?
+  version                      BigInt                        @default(0)
+  parent_id                    BigInt?
+  comment                      String?                       @db.Text
+  name                         String?                       @db.VarChar(255)
+  discount_percentage          Float?                        @db.Float
+  quantity                     Float?                        @db.Float
+  quantity_real                Float?                        @db.Float
+  unit                         String?                       @db.VarChar(50)
+  calculated_price             String?                       @db.VarChar(18)
+  calculated_price_real        String?                       @db.VarChar(18)
+  unit_price                   String?                       @db.VarChar(18)
+  length                       String?                       @db.VarChar(18)
+  done                         Boolean?
+  order_number                 Int?
+  ecommerce                    Int                           @default(1) @db.TinyInt
+  task_groups                  String?                       @db.Text
+  is_extra_sale                Boolean                       @default(false)
+  internal                     Boolean                       @default(false)
+  description                  String?                       @db.Text
+  sub_visit                    sub_visit                     @relation(fields: [sub_visit_id], references: [id], onDelete: Cascade, map: "product_row_ibfk_7")
+  product_version              product_version?              @relation(fields: [product_version_id], references: [id], map: "product_row_ibfk_8")
+  buffered_invoice_product_row buffered_invoice_product_row?
+  comment_product_row          comment_product_row[]
+  product_row_file             product_row_file[]            @ignore
+  product_row_sub_visit        product_row_sub_visit[]
+
+  @@index([parent_id], map: "parent_id")
+  @@index([product_version_id], map: "product_id")
+  @@index([sub_visit_id], map: "sub_visit_id")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model product_row_file {
+  product_row_id BigInt
+  file_id        BigInt
+  file           file        @relation(fields: [file_id], references: [id], onDelete: Cascade, map: "product_row_file_ibfk_1")
+  product_row    product_row @relation(fields: [product_row_id], references: [id], onDelete: Cascade, map: "product_row_file_ibfk_2")
+
+  @@index([file_id], map: "file_id")
+  @@index([product_row_id], map: "product_row_id")
+  @@ignore
+}
+
+model product_row_sub_visit {
+  id             BigInt      @id @default(autoincrement())
+  sub_visit_id   BigInt
+  product_row_id BigInt
+  version        BigInt
+  sub_visit      sub_visit   @relation(fields: [sub_visit_id], references: [id], onDelete: Cascade, map: "product_row_sub_visit_ibfk_1")
+  product_row    product_row @relation(fields: [product_row_id], references: [id], onDelete: Cascade, map: "product_row_sub_visit_ibfk_2")
+
+  @@index([product_row_id], map: "product_row_id")
+  @@index([sub_visit_id, product_row_id], map: "sub_visit_id")
+}
+
+model product_row_version {
+  id                    BigInt           @default(0)
+  sub_visit_id          BigInt           @default(0)
+  sub_visit_version     BigInt
+  product_version_id    BigInt?
+  version               BigInt           @default(0)
+  parent_id             BigInt?
+  comment               String?          @db.Text
+  name                  String?          @db.VarChar(255)
+  discount_percentage   Float?           @db.Float
+  quantity              Float?           @db.Float
+  quantity_real         Float?           @db.Float
+  calculated_price      String?          @db.VarChar(18)
+  calculated_price_real String?          @db.VarChar(18)
+  unit_price            String?          @db.VarChar(18)
+  length                String?          @db.VarChar(18)
+  done                  Boolean?
+  order_number          Int              @default(0)
+  ecommerce             Int              @default(1) @db.TinyInt
+  task_groups           String?          @db.Text
+  product_version       product_version? @relation(fields: [product_version_id], references: [id], onDelete: Cascade, map: "product_row_version_ibfk_10")
+  sub_visit             sub_visit        @relation(fields: [sub_visit_id], references: [id], onDelete: Cascade, map: "product_row_version_ibfk_7")
+
+  @@id([id, sub_visit_id, sub_visit_version, version, order_number])
+  @@index([parent_id], map: "parent_id")
+  @@index([product_version_id], map: "product_id")
+  @@index([sub_visit_id], map: "sub_visit_id")
+}
+
+model product_vendor {
+  id                            BigInt                     @id @default(autoincrement())
+  vendor_name                   String?                    @db.VarChar(255)
+  email                         String?                    @db.VarChar(255)
+  information                   String?                    @db.Text
+  permission                    BigInt                     @default(0)
+  created_at                    DateTime                   @db.DateTime(0)
+  iban                          String?                    @db.VarChar(255)
+  bic                           String?                    @db.VarChar(255)
+  allow_invoicing               Boolean                    @default(true)
+  direct_invoicing              Boolean                    @default(false)
+  proco_interface_pw            String?                    @db.TinyText
+  procountor_auth_bundle        String?                    @db.Text
+  invoice_due_date              Int                        @default(14) @db.TinyInt
+  accountant_email              String?                    @db.TinyText
+  vat_number                    String?                    @db.VarChar(255)
+  address                       String?                    @db.VarChar(255)
+  postal_address                String?                    @db.VarChar(255)
+  city                          String?                    @db.VarChar(255)
+  order_number                  Int?
+  logo_id                       Int?
+  content4_image_id             BigInt?
+  content4_title                String?                    @db.VarChar(255)
+  content4_text                 String?                    @db.Text
+  content3_image_id             BigInt?
+  content3_title                String?                    @db.VarChar(255)
+  content3_text                 String?                    @db.Text
+  content2_image_id             BigInt?
+  content2_title                String?                    @db.VarChar(255)
+  content2_text                 String?                    @db.Text
+  content1_image_id             BigInt?
+  content1_title                String?                    @db.VarChar(255)
+  content1_text                 String?                    @db.Text
+  header_image_id               BigInt?
+  header_title                  String?                    @db.VarChar(255)
+  header_text                   String?                    @db.Text
+  image_black_id                BigInt?
+  image_white_id                BigInt?
+  physical_product_sale_percent Decimal?                   @db.Decimal(5, 2)
+  service_product_sale_percent  Decimal?                   @db.Decimal(5, 2)
+  discount_csv_id               BigInt?
+  lvisnet_folder_name           String?                    @db.VarChar(100)
+  search_url                    String?                    @db.TinyText
+  postal_number                 String?                    @db.VarChar(255)
+  default_color                 String?                    @db.VarChar(50)
+  text_color                    String?                    @db.VarChar(50)
+  no_commission_on_own_sales    Boolean                    @default(false)
+  lvis_net_product              lvis_net_product[]
+  organization                  organization[]
+  proco_invoice                 proco_invoice[]
+  product_vendor_error_log      product_vendor_error_log[]
+  product_vendor_products       product_vendor_products[]  @ignore
+  product_version               product_version[]
+  vendor_order                  vendor_order[]
+}
+
+model product_vendor_description {
+  id              BigInt  @id @default(autoincrement())
+  vendor_id       BigInt
+  organization_id BigInt
+  information     String? @db.Text
+}
+
+model product_vendor_error_log {
+  id             BigInt         @id @default(autoincrement())
+  label          String         @db.VarChar(255)
+  error          String         @db.VarChar(50)
+  message        String         @db.VarChar(255)
+  created_at     DateTime?      @db.DateTime(0)
+  ref            BigInt
+  product_vendor product_vendor @relation(fields: [ref], references: [id], onDelete: Cascade, map: "product_vendor_error_log_ibfk_2")
+
+  @@index([ref], map: "ref")
+}
+
+model product_vendor_file {
+  vendor_id BigInt
+  file_id   BigInt
+
+  @@id([vendor_id, file_id])
+}
+
+model product_vendor_order {
+  id                 BigInt          @id @unique(map: "id") @default(autoincrement())
+  vendor_order_id    BigInt
+  product_version_id BigInt
+  amount             BigInt?
+  product_version    product_version @relation(fields: [product_version_id], references: [id], onDelete: Cascade, map: "product_vendor_order_ibfk_2")
+  vendor_order       vendor_order    @relation(fields: [vendor_order_id], references: [id], onDelete: Cascade, map: "product_vendor_order_ibfk_3")
+
+  @@index([product_version_id], map: "product_version_id")
+  @@index([vendor_order_id, product_version_id], map: "vendor_order_id")
+  @@index([vendor_order_id], map: "vendor_order_id_2")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model product_vendor_products {
+  vendor_id      BigInt?
+  product_id     BigInt?
+  product_vendor product_vendor? @relation(fields: [vendor_id], references: [id], onDelete: Cascade, map: "product_vendor_products_ibfk_1")
+  product        product?        @relation(fields: [product_id], references: [id], onDelete: Cascade, map: "product_vendor_products_ibfk_2")
+
+  @@index([product_id], map: "product_id")
+  @@index([vendor_id, product_id], map: "vendor_id")
+  @@ignore
+}
+
+model product_version {
+  id                                             BigInt                      @id @default(autoincrement())
+  product_id                                     BigInt
+  version                                        BigInt
+  product_name                                   String?                     @db.VarChar(255)
+  product_name_2                                 String?                     @db.VarChar(255)
+  internal_name                                  String?                     @db.VarChar(100)
+  brand                                          String?                     @db.VarChar(255)
+  product_name_specification                     String?                     @db.Text
+  product_description                            String?                     @db.Text
+  product_instruction                            String?                     @db.Text
+  interval_period                                String?                     @db.VarChar(255)
+  lvi_code                                       String?                     @db.VarChar(255)
+  manufacturer_code                              String?                     @db.VarChar(255)
+  product_video_link                             String?                     @db.VarChar(255)
+  retail_price                                   Decimal                     @db.Decimal(18, 2)
+  wholesale_price                                Decimal?                    @db.Decimal(18, 2)
+  price                                          Decimal                     @db.Decimal(18, 2)
+  vat_id                                         BigInt
+  unit                                           String?                     @db.VarChar(255)
+  state                                          BigInt?
+  headcount                                      BigInt?
+  general_catalog                                Boolean?                    @default(false)
+  price_type                                     Boolean?
+  cost_formula                                   String?                     @db.VarChar(2048)
+  time_formula                                   String?                     @db.VarChar(2048)
+  dynamic_formula                                String?                     @db.Text
+  auto_comment                                   String?                     @db.Text
+  difficulty                                     BigInt?
+  product_vendor                                 BigInt?
+  image                                          BigInt?
+  discount                                       Boolean                     @default(true)
+  starting_from                                  DateTime                    @db.DateTime(0)
+  in_stock                                       Int?
+  always_available                               Boolean                     @default(false)
+  recipe_id                                      Int?
+  created_at                                     DateTime                    @default(now()) @db.DateTime(0)
+  imported_at                                    DateTime?                   @db.DateTime(0)
+  deleted_at                                     DateTime?                   @db.DateTime(0)
+  internal                                       Boolean                     @default(false)
+  image_imageToproduct_version                   image?                      @relation(fields: [image], references: [id], onUpdate: SetNull, map: "product_version_ibfk_5")
+  product_vendor_product_vendorToproduct_version product_vendor?             @relation(fields: [product_vendor], references: [id], onUpdate: NoAction, map: "product_version_ibfk_6")
+  product                                        product                     @relation(fields: [product_id], references: [id], onUpdate: Restrict, map: "product_version_ibfk_7")
+  product_group                                  product_group?              @relation(fields: [state], references: [id], onUpdate: NoAction, map: "product_version_ibfk_8")
+  district_product_factor                        district_product_factor[]   @ignore
+  product_expertise                              product_expertise[]
+  product_row                                    product_row[]
+  product_row_version                            product_row_version[]
+  product_vendor_order                           product_vendor_order[]
+  product_version_error_log                      product_version_error_log[]
+
+  @@index([image], map: "image")
+  @@index([product_id], map: "product_id")
+  @@index([product_vendor], map: "product_vendor")
+  @@index([state], map: "state")
+}
+
+model product_version_error_log {
+  id              BigInt          @id @default(autoincrement())
+  label           String          @db.VarChar(255)
+  error           String          @db.VarChar(50)
+  message         String          @db.VarChar(255)
+  created_at      DateTime?       @db.DateTime(0)
+  ref             BigInt
+  product_version product_version @relation(fields: [ref], references: [id], onDelete: Cascade, map: "product_version_error_log_ibfk_1")
+
+  @@index([ref], map: "ref")
+}
+
+model product_version_reminder {
+  id                 BigInt @id @default(autoincrement())
+  product_version_id BigInt
+
+  @@index([product_version_id], map: "product_version_id")
+}
+
+model proposal_contract_settings {
+  key_id String @id @db.VarChar(255)
+  order  BigInt
+  name   String @db.VarChar(255)
+  value  String @db.Text
+}
+
+model purchase_order {
+  id                           BigInt               @id @default(autoincrement())
+  shopping_list_id             BigInt?
+  organization_id              BigInt?
+  type                         BigInt?
+  visit_id                     BigInt?
+  hash                         String               @db.VarChar(255)
+  district_id                  BigInt?
+  stock_id                     BigInt?
+  contract_id                  BigInt?
+  shipping_date                DateTime             @db.DateTime(0)
+  shipping_address             String?              @db.VarChar(255)
+  shipping_location            String?              @db.VarChar(255)
+  shipping_post_number         String?              @db.VarChar(255)
+  invoice_post_number          String?              @db.VarChar(255)
+  invoice_location             String?              @db.VarChar(255)
+  billing_address              String?              @db.VarChar(255)
+  billing_operator             String?              @db.VarChar(255)
+  billing_operator_broker_code String?              @db.VarChar(255)
+  email_invoice_address        String?              @db.VarChar(255)
+  invoice_address              String?              @db.VarChar(255)
+  created_at                   DateTime?            @db.DateTime(0)
+  updated_at                   DateTime?            @db.DateTime(0)
+  shopping_list                shopping_list?       @relation(fields: [shopping_list_id], references: [id], onUpdate: SetNull, map: "purchase_order_ibfk_1")
+  district                     district?            @relation(fields: [district_id], references: [id], onUpdate: SetNull, map: "purchase_order_ibfk_2")
+  stock                        stock?               @relation(fields: [stock_id], references: [id], onUpdate: SetNull, map: "purchase_order_ibfk_3")
+  contract                     contract?            @relation(fields: [contract_id], references: [id], onUpdate: SetNull, map: "purchase_order_ibfk_4")
+  purchase_order_type          purchase_order_type? @relation(fields: [type], references: [id], onUpdate: SetNull, map: "purchase_order_ibfk_5")
+  visit                        visit?               @relation(fields: [visit_id], references: [id], onUpdate: SetNull, map: "purchase_order_ibfk_6")
+  organization                 organization?        @relation(fields: [organization_id], references: [id], onUpdate: SetNull, map: "purchase_order_ibfk_7")
+  vendor_order                 vendor_order[]
+
+  @@index([contract_id], map: "contract_id")
+  @@index([district_id], map: "district_id")
+  @@index([organization_id], map: "organization_id")
+  @@index([shopping_list_id], map: "shopping_list_id")
+  @@index([stock_id], map: "stock_id")
+  @@index([type], map: "type")
+  @@index([visit_id], map: "visit_id")
+}
+
+model purchase_order_type {
+  id             BigInt           @id @default(autoincrement())
+  name           String           @db.VarChar(255)
+  purchase_order purchase_order[]
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model question_expertise {
+  expertise_id       BigInt
+  question_id        BigInt
+  expertise          expertise          @relation(fields: [expertise_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "question_expertise_ibfk_1")
+  expertise_question expertise_question @relation(fields: [question_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "question_expertise_ibfk_2")
+
+  @@index([expertise_id, question_id], map: "expertise_id")
+  @@index([question_id], map: "question_id")
+  @@ignore
+}
+
+model radon_lab_order {
+  sub_visit_id      BigInt    @id
+  registration_code String    @db.TinyText
+  order_url         String    @db.Text
+  created_at        DateTime  @default(now()) @db.DateTime(0)
+  sub_visit         sub_visit @relation(fields: [sub_visit_id], references: [id], onDelete: Cascade, map: "radon_lab_order_ibfk_1")
+}
+
+model reimbursement_list {
+  id                  BigInt @id @default(autoincrement())
+  transaction_account String @db.VarChar(255)
+  account_number      String @db.VarChar(255)
+  payer               String @db.VarChar(255)
+  total               String @db.VarChar(255)
+  message             String @db.VarChar(255)
+}
+
+model reminder {
+  id     BigInt  @id @default(autoincrement())
+  text   String? @db.Text
+  period BigInt
+  type   BigInt
+
+  @@index([type], map: "type")
+}
+
+model review {
+  id                                BigInt                      @id @default(autoincrement())
+  subvisit_id                       BigInt
+  author_id                         BigInt?
+  created_at                        DateTime                    @default(now()) @db.DateTime(0)
+  text                              String?                     @db.VarChar(1500)
+  rating                            Boolean
+  alias                             String                      @db.VarChar(50)
+  ipv6                              Bytes                       @db.Binary(16)
+  published                         Boolean                     @default(false)
+  would_recommend                   Boolean                     @default(false)
+  wants_contact                     Boolean                     @default(false)
+  reply_author_id                   BigInt?
+  reply                             String?                     @db.Text
+  reply_time                        DateTime                    @default(now()) @db.DateTime(0)
+  handled                           Boolean                     @default(false)
+  handle_time                       DateTime?                   @db.DateTime(0)
+  sub_visit                         sub_visit                   @relation(fields: [subvisit_id], references: [id], onDelete: Cascade, map: "review_ibfk_2")
+  user_review_author_idTouser       user?                       @relation("review_author_idTouser", fields: [author_id], references: [id], onUpdate: NoAction, map: "review_ibfk_3")
+  user_review_reply_author_idTouser user?                       @relation("review_reply_author_idTouser", fields: [reply_author_id], references: [id], onUpdate: NoAction, map: "review_ibfk_4")
+  review_template_sub_visit         review_template_sub_visit[] @ignore
+
+  @@index([author_id], map: "author_id")
+  @@index([reply_author_id], map: "reply_author_id")
+  @@index([subvisit_id], map: "subvisit_id")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model review_summary {
+  subvisit_id BigInt
+  reviews     Int
+  rating      Float     @db.Float
+  recommends  Int
+  updated_at  DateTime  @default(now()) @db.DateTime(0)
+  sub_visit   sub_visit @relation(fields: [subvisit_id], references: [id], onDelete: Cascade, map: "review_summary_ibfk_1")
+
+  @@index([subvisit_id], map: "review_summary_ibfk_1")
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model review_template_sub_visit {
+  subvisit_id BigInt
+  review_id   BigInt
+  sub_visit   sub_visit @relation(fields: [subvisit_id], references: [id], onDelete: Cascade, map: "review_template_sub_visit_ibfk_1")
+  review      review    @relation(fields: [review_id], references: [id], onDelete: Cascade, map: "review_template_sub_visit_ibfk_2")
+
+  @@index([review_id], map: "review_id")
+  @@index([subvisit_id], map: "subvisit_id")
+  @@ignore
+}
+
+model role {
+  id          BigInt     @id @default(0)
+  name        String     @db.VarChar(32)
+  description String?    @db.VarChar(255)
+  sub_role    sub_role[]
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model sale_shares {
+  user_version_id BigInt
+  invoice_log_id  BigInt?
+  percent         Decimal      @db.Decimal(5, 2)
+  time_share      Decimal      @db.Decimal(5, 2)
+  withdrawn_at    DateTime?    @db.DateTime(0)
+  bonus_type_id   BigInt?
+  bonus_type      bonus_type?  @relation(fields: [bonus_type_id], references: [id], map: "sale_shares_ibfk_1")
+  invoice_log     invoice_log? @relation(fields: [invoice_log_id], references: [id], map: "sale_shares_ibfk_2")
+  user_version    user_version @relation(fields: [user_version_id], references: [id], onDelete: Cascade, map: "sale_shares_ibfk_3")
+
+  @@index([invoice_log_id], map: "invoice_log_id")
+  @@index([bonus_type_id], map: "sale_shares_ibfk_1")
+  @@index([user_version_id], map: "user_version_id")
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model schedule {
+  key_id String @db.VarChar(255)
+  name   String @db.VarChar(255)
+  value  String @db.VarChar(255)
+
+  @@ignore
+}
+
+model scheduled_payment {
+  id                  BigInt       @id @default(autoincrement())
+  transaction_id      BigInt?
+  transaction_account String       @db.VarChar(255)
+  account_number      String       @db.VarChar(255)
+  payer               String       @db.VarChar(255)
+  total               String       @db.VarChar(255)
+  message             String       @db.VarChar(255)
+  transaction         transaction? @relation(fields: [transaction_id], references: [id], onUpdate: SetNull, map: "scheduled_payment_ibfk_1")
+
+  @@index([transaction_id], map: "transaction_id")
+}
+
+model setting {
+  key_id String @id @db.VarChar(255)
+  value  BigInt
+}
+
+model shopping_list {
+  id                    BigInt                  @id @default(autoincrement())
+  user_id               BigInt?
+  name                  String?                 @db.VarChar(255)
+  resources             String?                 @db.Text
+  organization_id       BigInt
+  permission            BigInt
+  created_at            DateTime                @db.DateTime(0)
+  updated_at            DateTime?               @db.DateTime(0)
+  user                  user?                   @relation(fields: [user_id], references: [id], onUpdate: SetNull, map: "shopping_list_ibfk_2")
+  purchase_order        purchase_order[]
+  shopping_list_product shopping_list_product[]
+
+  @@index([organization_id], map: "organization_id")
+  @@index([user_id], map: "user_id")
+}
+
+model shopping_list_product {
+  id               BigInt        @id @default(autoincrement())
+  shopping_list_id BigInt
+  product_id       BigInt
+  amount           BigInt?
+  permission       BigInt
+  created_at       DateTime?     @db.DateTime(0)
+  updated_at       DateTime?     @db.DateTime(0)
+  shopping_list    shopping_list @relation(fields: [shopping_list_id], references: [id], onDelete: Cascade, map: "shopping_list_product_ibfk_1")
+  product          product       @relation(fields: [product_id], references: [id], onDelete: Cascade, map: "shopping_list_product_ibfk_2")
+
+  @@index([product_id], map: "product_id")
+  @@index([shopping_list_id, product_id], map: "shopping_list_id")
+}
+
+model shortened_url {
+  id         BigInt   @id @default(autoincrement())
+  url        String   @db.TinyText
+  created_at DateTime @default(now()) @db.Timestamp(0)
+}
+
+model stock {
+  id              BigInt           @id @default(autoincrement())
+  stock_name      String           @db.VarChar(255)
+  organization_id BigInt
+  permission      BigInt           @default(0)
+  inventory_date  DateTime?        @db.DateTime(0)
+  organization    organization     @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "stock_ibfk_2")
+  purchase_order  purchase_order[]
+  stock_product   stock_product[]
+
+  @@index([organization_id], map: "organization_id")
+}
+
+model stock_order {
+  id               BigInt        @id @default(autoincrement())
+  stock_product_id BigInt
+  count            BigInt?
+  order_date       DateTime?     @db.DateTime(0)
+  stock_product    stock_product @relation(fields: [stock_product_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "stock_order_ibfk_1")
+
+  @@index([stock_product_id], map: "stock_product_id")
+}
+
+model stock_product {
+  id             BigInt        @id @default(autoincrement())
+  product_id     BigInt
+  stock_id       BigInt
+  shelf          String        @db.VarChar(11)
+  count          BigInt
+  lower_limit    BigInt?
+  upper_limit    BigInt?
+  inventory_date DateTime      @db.DateTime(0)
+  permission     BigInt        @default(0)
+  stock          stock         @relation(fields: [stock_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "stock_product_ibfk_1")
+  product        product       @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "stock_product_ibfk_2")
+  stock_order    stock_order[]
+
+  @@index([product_id], map: "product_id")
+  @@index([stock_id], map: "stock_id")
+}
+
+model store_menu {
+  id                BigInt   @unique(map: "id") @default(autoincrement())
+  organization_id   BigInt?
+  parent_id         BigInt?
+  parent_order      BigInt?
+  parent_selected   Boolean?
+  subvisit_id       BigInt?
+  subvisit_order    BigInt?
+  subvisit_selected Boolean?
+}
+
+model sub_product {
+  id         BigInt   @id @default(autoincrement())
+  parent_id  BigInt
+  product_id BigInt
+  created_at DateTime @default(now()) @db.DateTime(0)
+
+  @@index([parent_id], map: "parent_id")
+  @@index([product_id], map: "product_id")
+}
+
+model sub_role {
+  id          BigInt  @id @default(autoincrement())
+  role_id     BigInt
+  name        String  @db.VarChar(32)
+  description String? @db.VarChar(255)
+  role        role    @relation(fields: [role_id], references: [id], onDelete: Cascade, map: "sub_role_ibfk_1")
+
+  @@index([role_id], map: "role_id")
+}
+
+model sub_target {
+  id                                    BigInt              @id @default(autoincrement())
+  order                                 Int?                @map("_order")
+  name                                  String?             @db.VarChar(255)
+  invoice_type                          BigInt?
+  parent_id                             BigInt?
+  subtarget_parent_id                   BigInt?
+  floor                                 BigInt?
+  apartment_count                       BigInt?
+  apartment_id                          String?             @db.VarChar(1024)
+  area                                  Float?
+  hvac_system_id                        BigInt?
+  hvac_install_year                     String?             @db.VarChar(255)
+  use_parent_address                    Boolean?
+  customer_id                           BigInt?
+  customer                              customer?           @relation(fields: [customer_id], references: [id], onUpdate: SetNull, map: "sub_target_customer_id")
+  hvac_system                           hvac_system?        @relation(fields: [hvac_system_id], references: [id], onUpdate: SetNull, map: "sub_target_hvac_system_id_hvac_system_id")
+  sub_target                            sub_target?         @relation("sub_targetTosub_target", fields: [subtarget_parent_id], references: [id], map: "sub_target_ibfk_1")
+  invoice_type_invoice_typeTosub_target invoice_type?       @relation(fields: [invoice_type], references: [id], onUpdate: SetNull, map: "sub_target_invoice_type_invoice_type_id")
+  target                                target?             @relation(fields: [parent_id], references: [id], onDelete: Cascade, map: "sub_target_parent_id_target_id")
+  other_sub_target                      sub_target[]        @relation("sub_targetTosub_target")
+  sub_visit                             sub_visit[]
+  sub_visit_version                     sub_visit_version[]
+
+  @@index([customer_id], map: "customer_id")
+  @@index([hvac_system_id], map: "hvac_system_id_idx")
+  @@index([invoice_type], map: "invoice_type_idx")
+  @@index([parent_id], map: "parent_id_idx")
+  @@index([subtarget_parent_id], map: "subtarget_parent_id")
+}
+
+model sub_tool {
+  id         BigInt   @id @default(autoincrement())
+  parent_id  BigInt
+  tool_id    BigInt
+  created_at DateTime @db.DateTime(0)
+}
+
+model sub_visit {
+  id                                                    BigInt                      @id @default(autoincrement())
+  number                                                BigInt?
+  active                                                Boolean                     @default(true)
+  order_number                                          BigInt?
+  hash                                                  String?                     @db.VarChar(255)
+  parent_id                                             BigInt?
+  subvisit_id                                           BigInt?
+  subvisit_version                                      Int?
+  status_id                                             BigInt?
+  sub_visit_id                                          BigInt?
+  visit_id                                              BigInt?
+  sub_target_id                                         BigInt?
+  unit_id                                               BigInt?
+  author_id                                             BigInt?
+  offer_status_id                                       BigInt?
+  renewal_period                                        BigInt?
+  renewable                                             Boolean?
+  invoice_id                                            BigInt?
+  invoice_row_id                                        BigInt?
+  name                                                  String?                     @db.VarChar(255)
+  discount_percentage                                   BigInt?                     @default(0)
+  memo                                                  String?                     @db.Text
+  generalinformation                                    String?                     @db.Text
+  validity_period                                       DateTime?                   @db.DateTime(0)
+  validation_period                                     Int?
+  interval_period                                       String?                     @db.VarChar(20)
+  video_url                                             String?                     @db.VarChar(255)
+  start_time                                            DateTime?                   @db.DateTime(0)
+  end_time                                              DateTime?                   @db.DateTime(0)
+  duration                                              Int?
+  created_at                                            DateTime?                   @default(now()) @db.DateTime(0)
+  updated_at                                            DateTime?                   @default(now()) @db.DateTime(0)
+  version                                               BigInt                      @default(0)
+  version_starting_from                                 DateTime?                   @default(now()) @db.DateTime(0)
+  email_sent                                            DateTime?                   @db.DateTime(0)
+  has_sent                                              Boolean                     @default(false)
+  menu_order                                            BigInt?
+  menu_selected                                         Boolean?
+  frontpage_selected                                    Boolean?
+  invoice_entity_id                                     BigInt?
+  inspected_by                                          BigInt?
+  agent_id                                              BigInt?
+  deal_closer_id                                        BigInt?
+  delay_reason                                          String?                     @db.Text
+  delayed_end_time                                      DateTime?                   @db.Date
+  invoice_message                                       String?                     @db.Text
+  invoice_due_date                                      Int?
+  order_time                                            DateTime?                   @db.DateTime(0)
+  resident_info_inpected_by                             BigInt?
+  cobranding_organization_id                            BigInt?
+  cobranding_company_name                               String?                     @db.VarChar(512)
+  report                                                String?                     @db.Text
+  work_finish_message                                   String?                     @db.Text
+  work_finish_message_read_by                           BigInt?
+  work_finish_message_public                            Boolean                     @default(true)
+  recurring_parent                                      BigInt?
+  organizer_notes                                       String?                     @db.Text
+  contact_id                                            BigInt?
+  recurring_intro_sent                                  DateTime?                   @db.DateTime(0)
+  disable_offer_reminders                               Boolean                     @default(false)
+  custom                                                Boolean                     @default(false)
+  resident_bulletin                                     String?                     @db.Text
+  resident_bulletin_start_time                          DateTime?                   @db.DateTime(0)
+  resident_bulletin_end_time                            DateTime?                   @db.DateTime(0)
+  resident_bulletin_enabled                             Boolean                     @default(false)
+  procountor_invoice_id                                 Int?
+  procountor_invoice_status                             String?                     @db.VarChar(48)
+  sub_visit_sub_visitTosub_visit_parent_id              sub_visit?                  @relation("sub_visitTosub_visit_parent_id", fields: [parent_id], references: [id], map: "sub_visit_ibfk_10")
+  sub_visit_sub_visitTosub_visit_subvisit_id            sub_visit?                  @relation("sub_visitTosub_visit_subvisit_id", fields: [subvisit_id], references: [id], onDelete: Cascade, map: "sub_visit_ibfk_11")
+  invoice_entity                                        invoice_entity?             @relation(fields: [invoice_entity_id], references: [id], onDelete: Cascade, map: "sub_visit_ibfk_14")
+  user_sub_visit_inspected_byTouser                     user?                       @relation("sub_visit_inspected_byTouser", fields: [inspected_by], references: [id], onUpdate: SetNull, map: "sub_visit_ibfk_15")
+  user_sub_visit_agent_idTouser                         user?                       @relation("sub_visit_agent_idTouser", fields: [agent_id], references: [id], map: "sub_visit_ibfk_16")
+  user_sub_visit_deal_closer_idTouser                   user?                       @relation("sub_visit_deal_closer_idTouser", fields: [deal_closer_id], references: [id], map: "sub_visit_ibfk_17")
+  user_sub_visit_resident_info_inpected_byTouser        user?                       @relation("sub_visit_resident_info_inpected_byTouser", fields: [resident_info_inpected_by], references: [id], map: "sub_visit_ibfk_18")
+  organization                                          organization?               @relation(fields: [cobranding_organization_id], references: [id], map: "sub_visit_ibfk_19")
+  invoice                                               invoice?                    @relation(fields: [invoice_id], references: [id], onDelete: Cascade, map: "sub_visit_ibfk_2")
+  user_sub_visit_work_finish_message_read_byTouser      user?                       @relation("sub_visit_work_finish_message_read_byTouser", fields: [work_finish_message_read_by], references: [id], map: "sub_visit_ibfk_20")
+  sub_visit_sub_visitTosub_visit_recurring_parent       sub_visit?                  @relation("sub_visitTosub_visit_recurring_parent", fields: [recurring_parent], references: [id], map: "sub_visit_ibfk_21")
+  sub_target                                            sub_target?                 @relation(fields: [sub_target_id], references: [id], map: "sub_visit_ibfk_22")
+  user_sub_visit_author_idTouser                        user?                       @relation("sub_visit_author_idTouser", fields: [author_id], references: [id], onUpdate: SetNull, map: "sub_visit_ibfk_7")
+  offer_status                                          offer_status?               @relation(fields: [offer_status_id], references: [id], onUpdate: SetNull, map: "sub_visit_ibfk_8")
+  visit                                                 visit?                      @relation(fields: [visit_id], references: [id], onDelete: Cascade, map: "sub_visit_visit_id_visit_id")
+  comment_sub_visit                                     comment_sub_visit[]
+  contract_comments                                     contract_comments[]
+  custom_product_row                                    custom_product_row[]
+  invoice_log                                           invoice_log?
+  invoice_row                                           invoice_row[]
+  offer_reminders                                       offer_reminders[]           @ignore
+  procountor_invoice                                    procountor_invoice[]
+  product_row                                           product_row[]
+  product_row_sub_visit                                 product_row_sub_visit[]
+  product_row_version                                   product_row_version[]
+  radon_lab_order                                       radon_lab_order?
+  review                                                review[]
+  review_summary                                        review_summary[]            @ignore
+  review_template_sub_visit                             review_template_sub_visit[] @ignore
+  other_sub_visit_sub_visitTosub_visit_parent_id        sub_visit[]                 @relation("sub_visitTosub_visit_parent_id")
+  other_sub_visit_sub_visitTosub_visit_subvisit_id      sub_visit[]                 @relation("sub_visitTosub_visit_subvisit_id")
+  other_sub_visit_sub_visitTosub_visit_recurring_parent sub_visit[]                 @relation("sub_visitTosub_visit_recurring_parent")
+  sub_visit_contact_log                                 sub_visit_contact_log[]     @ignore
+  sub_visit_file                                        sub_visit_file[]            @ignore
+  sub_visit_status_log                                  sub_visit_status_log[]
+  sub_visit_version                                     sub_visit_version[]
+  support_case                                          support_case[]
+
+  @@index([agent_id], map: "agent_id")
+  @@index([author_id], map: "author_id")
+  @@index([cobranding_organization_id], map: "cobranding_organization_id")
+  @@index([deal_closer_id], map: "deal_closer_id")
+  @@index([inspected_by], map: "inspected_by")
+  @@index([invoice_entity_id], map: "invoice_entity_id")
+  @@index([invoice_id], map: "invoice_id")
+  @@index([offer_status_id], map: "offer_status_id")
+  @@index([parent_id], map: "parent_id")
+  @@index([recurring_parent], map: "recurring_parent")
+  @@index([resident_info_inpected_by], map: "resident_info_inpected_by")
+  @@index([status_id], map: "status_id")
+  @@index([sub_target_id], map: "sub_target_id")
+  @@index([subvisit_id], map: "subvisit_id")
+  @@index([start_time, end_time, duration, unit_id], map: "timing_index")
+  @@index([unit_id], map: "unit_id")
+  @@index([visit_id], map: "visit_id_idx")
+  @@index([work_finish_message_read_by], map: "work_finish_message_read_by")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model sub_visit_contact_log {
+  sub_visit_id BigInt
+  user_id      BigInt?
+  type         String    @db.VarChar(100)
+  channel      String    @db.VarChar(20)
+  time         DateTime  @default(now()) @db.DateTime(0)
+  sub_visit    sub_visit @relation(fields: [sub_visit_id], references: [id], onDelete: Cascade, map: "sub_visit_contact_log_ibfk_1")
+  user         user?     @relation(fields: [user_id], references: [id], onDelete: Cascade, map: "sub_visit_contact_log_ibfk_2")
+
+  @@index([sub_visit_id], map: "sub_visit_id")
+  @@index([user_id], map: "user_id")
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model sub_visit_file {
+  sub_visit_id BigInt?
+  file_id      BigInt?
+  sub_visit    sub_visit? @relation(fields: [sub_visit_id], references: [id], onDelete: Cascade, map: "sub_visit_file_ibfk_1")
+  file         file?      @relation(fields: [file_id], references: [id], onDelete: Cascade, map: "sub_visit_file_ibfk_2")
+
+  @@index([file_id], map: "file_id")
+  @@index([sub_visit_id, file_id], map: "sub_visit_id")
+  @@ignore
+}
+
+model sub_visit_image_new {
+  sub_visit_id BigInt
+  image_id     BigInt
+  file         file   @relation(fields: [image_id], references: [id], onDelete: Cascade, map: "sub_visit_image_new_ibfk_1")
+
+  @@id([sub_visit_id, image_id])
+  @@index([image_id], map: "image_id")
+}
+
+model sub_visit_status {
+  id   Int    @id
+  name String @db.TinyText
+}
+
+model sub_visit_status_log {
+  sub_visit_id                                 BigInt
+  user_id                                      BigInt?
+  prev_status                                  Boolean?
+  next_status                                  Boolean
+  prev_offer_status                            Boolean?
+  next_offer_status                            Boolean?
+  total                                        Float     @db.Float
+  net_total                                    Float     @db.Float
+  delivered_total                              Float     @db.Float
+  delivered_net_total                          Float     @db.Float
+  prev_start_time                              DateTime? @db.DateTime(0)
+  prev_end_time                                DateTime? @db.DateTime(0)
+  next_start_time                              DateTime? @db.DateTime(0)
+  next_end_time                                DateTime? @db.DateTime(0)
+  prev_unit_id                                 BigInt?
+  next_unit_id                                 BigInt?
+  time                                         DateTime  @default(now())
+  sub_visit                                    sub_visit @relation(fields: [sub_visit_id], references: [id], onDelete: Cascade, map: "sub_visit_status_log_ibfk_1")
+  user                                         user?     @relation(fields: [user_id], references: [id], onDelete: Cascade, map: "sub_visit_status_log_ibfk_2")
+  unit_sub_visit_status_log_prev_unit_idTounit unit?     @relation("sub_visit_status_log_prev_unit_idTounit", fields: [prev_unit_id], references: [id], map: "sub_visit_status_log_ibfk_3")
+  unit_sub_visit_status_log_next_unit_idTounit unit?     @relation("sub_visit_status_log_next_unit_idTounit", fields: [next_unit_id], references: [id], map: "sub_visit_status_log_ibfk_4")
+
+  @@id([sub_visit_id, time])
+  @@index([next_unit_id], map: "next_unit_id")
+  @@index([prev_unit_id], map: "prev_unit_id")
+  @@index([sub_visit_id], map: "sub_visit_id")
+  @@index([user_id], map: "user_id")
+}
+
+model sub_visit_version {
+  id                                                     BigInt
+  number                                                 BigInt?
+  active                                                 Boolean         @default(true)
+  order_number                                           BigInt?
+  hash                                                   String?         @db.VarChar(255)
+  parent_id                                              BigInt?
+  subvisit_id                                            BigInt?
+  subvisit_version                                       Int?
+  status_id                                              BigInt?
+  sub_visit_id                                           BigInt?
+  visit_id                                               BigInt?
+  sub_target_id                                          BigInt?
+  unit_id                                                BigInt?
+  author_id                                              BigInt?
+  offer_status_id                                        BigInt?
+  renewal_period                                         BigInt?
+  renewable                                              Boolean         @default(false)
+  invoice_id                                             BigInt?
+  invoice_row_id                                         BigInt?
+  name                                                   String?         @db.VarChar(255)
+  discount_percentage                                    BigInt?         @default(0)
+  memo                                                   String?         @db.Text
+  generalinformation                                     String?         @db.Text
+  validity_period                                        DateTime?       @db.DateTime(0)
+  validation_period                                      Int?
+  interval_period                                        String?         @db.VarChar(20)
+  video_url                                              String?         @db.VarChar(255)
+  start_time                                             DateTime?       @db.DateTime(0)
+  end_time                                               DateTime?       @db.DateTime(0)
+  duration                                               Int?
+  created_at                                             DateTime?       @db.DateTime(0)
+  updated_at                                             DateTime?       @db.DateTime(0)
+  version                                                BigInt          @default(0)
+  version_starting_from                                  DateTime?       @db.DateTime(0)
+  email_sent                                             DateTime?       @db.DateTime(0)
+  has_sent                                               Boolean         @default(false)
+  menu_order                                             BigInt?
+  menu_selected                                          Boolean?
+  frontpage_selected                                     Boolean?
+  invoice_entity_id                                      BigInt?
+  inspected_by                                           BigInt?
+  agent_id                                               BigInt?
+  deal_closer_id                                         BigInt?
+  delay_reason                                           String?         @db.Text
+  delayed_end_time                                       DateTime?       @db.Date
+  invoice_message                                        String?         @db.Text
+  order_time                                             DateTime?       @db.DateTime(0)
+  resident_info_inpected_by                              BigInt?
+  invoice_entity                                         invoice_entity? @relation(fields: [invoice_entity_id], references: [id], onDelete: Cascade, map: "sub_visit_version_ibfk_10")
+  user_sub_visit_version_agent_idTouser                  user?           @relation("sub_visit_version_agent_idTouser", fields: [agent_id], references: [id], onUpdate: SetNull, map: "sub_visit_version_ibfk_11")
+  user_sub_visit_version_deal_closer_idTouser            user?           @relation("sub_visit_version_deal_closer_idTouser", fields: [deal_closer_id], references: [id], onUpdate: SetNull, map: "sub_visit_version_ibfk_12")
+  user_sub_visit_version_inspected_byTouser              user?           @relation("sub_visit_version_inspected_byTouser", fields: [inspected_by], references: [id], onUpdate: SetNull, map: "sub_visit_version_ibfk_13")
+  user_sub_visit_version_resident_info_inpected_byTouser user?           @relation("sub_visit_version_resident_info_inpected_byTouser", fields: [resident_info_inpected_by], references: [id], map: "sub_visit_version_ibfk_14")
+  sub_target                                             sub_target?     @relation(fields: [sub_target_id], references: [id], map: "sub_visit_version_ibfk_15")
+  invoice                                                invoice?        @relation(fields: [invoice_id], references: [id], onDelete: Cascade, map: "sub_visit_version_ibfk_2")
+  offer_status                                           offer_status?   @relation(fields: [offer_status_id], references: [id], onUpdate: SetNull, map: "sub_visit_version_ibfk_7")
+  sub_visit                                              sub_visit?      @relation(fields: [subvisit_id], references: [id], onDelete: Cascade, map: "sub_visit_version_ibfk_8")
+  visit                                                  visit?          @relation(fields: [visit_id], references: [id], onDelete: Cascade, map: "sub_visit_version_visit_id_visit_id")
+
+  @@id([id, version])
+  @@index([agent_id], map: "agent_id")
+  @@index([author_id], map: "author_id")
+  @@index([deal_closer_id], map: "deal_closer_id")
+  @@index([inspected_by], map: "inspected_by")
+  @@index([invoice_entity_id], map: "invoice_entity_id")
+  @@index([invoice_id], map: "invoice_id")
+  @@index([offer_status_id], map: "offer_status_id")
+  @@index([parent_id], map: "parent_id")
+  @@index([resident_info_inpected_by], map: "resident_info_inpected_by")
+  @@index([status_id], map: "status_id")
+  @@index([sub_target_id], map: "sub_target_id")
+  @@index([subvisit_id], map: "subvisit_id")
+  @@index([unit_id], map: "unit_id")
+  @@index([version], map: "version")
+  @@index([visit_id], map: "visit_id_idx")
+}
+
+model subtarget_dynamicparameter {
+  id                  BigInt             @default(autoincrement())
+  subtarget_id        BigInt
+  dynamicparameter_id BigInt
+  value               String?            @db.VarChar(500)
+  dynamic_parameters  dynamic_parameters @relation(fields: [dynamicparameter_id], references: [id], onDelete: Cascade, map: "subtarget_dynamicparameter_ibfk_2")
+
+  @@id([id, subtarget_id, dynamicparameter_id])
+  @@index([dynamicparameter_id], map: "dynamicparameter_id")
+  @@index([subtarget_id], map: "subtarget_id")
+}
+
+model support_case {
+  id                                                                                BigInt                   @id @default(autoincrement())
+  hash                                                                              String                   @db.TinyText
+  title                                                                             String?                  @db.TinyText
+  contract_id                                                                       BigInt?
+  sub_visit_id                                                                      BigInt?
+  created_at                                                                        DateTime                 @default(now()) @db.DateTime(0)
+  closed_at                                                                         DateTime?                @db.DateTime(0)
+  handler_id                                                                        BigInt?
+  reporter_id                                                                       BigInt?
+  contact_email                                                                     String?                  @db.VarChar(254)
+  contact_phone_number                                                              String?                  @db.VarChar(20)
+  thread_type                                                                       String?                  @db.VarChar(15)
+  contract                                                                          contract?                @relation(fields: [contract_id], references: [id], map: "support_case_ibfk_1")
+  sub_visit                                                                         sub_visit?               @relation(fields: [sub_visit_id], references: [id], map: "support_case_ibfk_2")
+  user_support_case_handler_idTouser                                                user?                    @relation("support_case_handler_idTouser", fields: [handler_id], references: [id], map: "support_case_ibfk_3")
+  user_support_case_reporter_idTouser                                               user?                    @relation("support_case_reporter_idTouser", fields: [reporter_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "support_case_ibfk_4")
+  message                                                                           message[]
+  support_case_assignees                                                            support_case_assignees[]
+  support_case_relation_support_caseTosupport_case_relation_support_case_id         support_case_relation[]  @relation("support_caseTosupport_case_relation_support_case_id")
+  support_case_relation_support_caseTosupport_case_relation_related_support_case_id support_case_relation[]  @relation("support_caseTosupport_case_relation_related_support_case_id")
+
+  @@index([contract_id], map: "contract_id")
+  @@index([handler_id], map: "handler_id")
+  @@index([reporter_id], map: "reporter_id")
+  @@index([sub_visit_id], map: "sub_visit_id")
+}
+
+model support_case_assignees {
+  support_case_id BigInt
+  user_id         BigInt
+  support_case    support_case @relation(fields: [support_case_id], references: [id], onDelete: Cascade, map: "support_case_assignees_ibfk_1")
+  user            user         @relation(fields: [user_id], references: [id], onDelete: Cascade, map: "support_case_assignees_ibfk_2")
+
+  @@id([support_case_id, user_id])
+  @@index([user_id], map: "user_id")
+}
+
+model support_case_relation {
+  support_case_id                                                          BigInt
+  related_support_case_id                                                  BigInt
+  support_case_support_caseTosupport_case_relation_support_case_id         support_case @relation("support_caseTosupport_case_relation_support_case_id", fields: [support_case_id], references: [id], onDelete: Cascade, map: "support_case_relation_ibfk_1")
+  support_case_support_caseTosupport_case_relation_related_support_case_id support_case @relation("support_caseTosupport_case_relation_related_support_case_id", fields: [related_support_case_id], references: [id], onDelete: Cascade, map: "support_case_relation_ibfk_2")
+
+  @@id([support_case_id, related_support_case_id])
+  @@index([related_support_case_id], map: "related_support_case_id")
+}
+
+model target {
+  id                           BigInt        @id @default(0)
+  condonium_id                 BigInt?
+  customer_id                  BigInt?
+  dynamicparameter_id          BigInt?
+  type_id                      BigInt?
+  name                         String?       @db.VarChar(255)
+  memo                         String?       @db.Text
+  condo                        String?       @db.VarChar(255)
+  ac_install_year              BigInt?
+  ac_prints                    BigInt?
+  additional_extractor_fans    BigInt?
+  additional_heating_machinery BigInt?
+  additional_ac_machinery      BigInt?
+  build_year                   String?       @db.VarChar(255)
+  actual_build_year            Int?
+  last_cleanup                 String?       @db.VarChar(255)
+  roof_material                String?       @db.VarChar(255)
+  roof_steepness               String?       @db.VarChar(255)
+  roof_outlet                  String?       @db.VarChar(255)
+  ventilation                  String?       @db.VarChar(255)
+  apartments                   BigInt?
+  staircases                   String?       @db.VarChar(255)
+  floors_count                 Int?
+  windows                      String?       @db.VarChar(255)
+  active_maintenance_mode      Boolean       @default(false)
+  place_id                     String?       @db.VarChar(255)
+  deleted_at                   DateTime?     @db.DateTime(0)
+  customer                     customer?     @relation(fields: [customer_id], references: [id], onDelete: Cascade, map: "target_ibfk_1")
+  condonium                    condonium?    @relation(fields: [condonium_id], references: [id], onUpdate: SetNull, map: "target_ibfk_2")
+  contract                     contract[]
+  sub_target                   sub_target[]
+  user_target                  user_target[] @ignore
+
+  @@index([condonium_id], map: "condonium_id")
+  @@index([customer_id], map: "customer_id")
+  @@index([type_id], map: "type_id")
+}
+
+model target_condonium {
+  target_id    BigInt
+  condonium_id BigInt
+
+  @@id([target_id, condonium_id])
+}
+
+model target_customer {
+  target_id   BigInt
+  customer_id BigInt
+
+  @@id([target_id, customer_id])
+}
+
+model target_dynamicparameter {
+  id                  BigInt  @default(autoincrement())
+  target_id           BigInt
+  dynamicparameter_id BigInt
+  value               String? @db.VarChar(500)
+
+  @@id([id, target_id, dynamicparameter_id])
+}
+
+model target_subtarget_dynamicparameter {
+  target_id           BigInt
+  dynamicparameter_id BigInt
+
+  @@id([target_id, dynamicparameter_id])
+}
+
+model target_type {
+  id   BigInt @id @default(autoincrement())
+  name String @db.VarChar(255)
+}
+
+model team {
+  id   BigInt  @id @default(0)
+  name String? @db.VarChar(255)
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model time_reservation {
+  start             DateTime @db.DateTime(0)
+  end               DateTime @db.DateTime(0)
+  unit_id           BigInt
+  zip_code          String?  @db.VarChar(10)
+  place_id          String?  @db.VarChar(225)
+  created_at        DateTime @default(now()) @db.DateTime(0)
+  reservation_token String?  @db.VarChar(64)
+
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model token_blacklist {
+  jwt        String   @db.VarChar(1024)
+  created_at DateTime @default(now()) @db.DateTime(0)
+
+  @@ignore
+}
+
+model transaction {
+  id                  BigInt                @id @default(autoincrement())
+  payer               String?               @db.VarChar(255)
+  account_number      String?               @db.VarChar(255)
+  transaction_account String?               @db.VarChar(255)
+  booking_date        DateTime?             @db.DateTime(0)
+  payment_date        DateTime?             @db.DateTime(0)
+  payment_reference   String?               @db.VarChar(255)
+  reference_number    String?               @db.VarChar(255)
+  message             String?               @db.VarChar(255)
+  total               Float?                @db.Float
+  action_type         Int?
+  confirmed           Int                   @default(0)
+  transaction_id      BigInt?
+  transaction         transaction?          @relation("transactionTotransaction", fields: [transaction_id], references: [id], onUpdate: SetNull, map: "transaction_ibfk_2")
+  scheduled_payment   scheduled_payment[]
+  other_transaction   transaction[]         @relation("transactionTotransaction")
+  transaction_invoice transaction_invoice[]
+
+  @@index([transaction_id], map: "transaction_id")
+}
+
+model transaction_invoice {
+  id             BigInt       @id @default(autoincrement())
+  transaction_id BigInt?
+  invoice_id     BigInt?
+  total          String?      @db.VarChar(255)
+  transaction    transaction? @relation(fields: [transaction_id], references: [id], onDelete: Cascade, map: "transaction_invoice_ibfk_1")
+  invoice        invoice?     @relation(fields: [invoice_id], references: [id], onDelete: Cascade, map: "transaction_invoice_ibfk_2")
+
+  @@index([invoice_id], map: "invoice_id")
+  @@index([transaction_id], map: "transaction_id")
+}
+
+model tree_node {
+  id              BigInt   @id @default(autoincrement())
+  parent_id       BigInt?
+  subvisit_id     BigInt?
+  organization_id BigInt?
+  node_visible    Boolean? @default(false)
+}
+
+model unit {
+  id                                                           BigInt                 @id @default(autoincrement())
+  deleted_at                                                   DateTime?              @db.DateTime(0)
+  organization                                                 organization[]
+  organization_version                                         organization_version[]
+  sub_visit_status_log_sub_visit_status_log_prev_unit_idTounit sub_visit_status_log[] @relation("sub_visit_status_log_prev_unit_idTounit")
+  sub_visit_status_log_sub_visit_status_log_next_unit_idTounit sub_visit_status_log[] @relation("sub_visit_status_log_next_unit_idTounit")
+  unit_version                                                 unit_version[]
+  user_unit                                                    user_unit[]            @ignore
+  user_version                                                 user_version[]
+}
+
+model unit_district {
+  unit_version_id BigInt
+  district_id     BigInt
+  district        district     @relation(fields: [district_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "unit_district_ibfk_1")
+  unit_version    unit_version @relation(fields: [unit_version_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "unit_district_ibfk_2")
+
+  @@id([unit_version_id, district_id])
+  @@index([district_id], map: "unit_district_ibfk_1")
+}
+
+model unit_expertise {
+  unit_id      BigInt
+  expertise_id BigInt
+  unit_version unit_version @relation(fields: [unit_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "unit_expertise_ibfk_1")
+  expertise    expertise    @relation(fields: [expertise_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "unit_expertise_ibfk_2")
+
+  @@id([unit_id, expertise_id])
+  @@index([expertise_id], map: "expertise_id")
+}
+
+model unit_version {
+  id                            BigInt                   @id @default(autoincrement())
+  name                          String?                  @db.VarChar(255)
+  unit_id                       BigInt?
+  author_id                     BigInt?
+  car_id                        BigInt?
+  version                       BigInt
+  address                       String?                  @db.VarChar(255)
+  post_number                   String?                  @db.VarChar(20)
+  postal_area                   String?                  @db.VarChar(255)
+  maximum_distance              String?                  @db.VarChar(20)
+  latitude                      String?                  @db.VarChar(255)
+  longitude                     String?                  @db.VarChar(255)
+  maximum_staff                 String?                  @db.VarChar(20)
+  minimum_staff                 String?                  @db.VarChar(20)
+  permission                    BigInt                   @default(0)
+  starting_from                 DateTime                 @db.DateTime(0)
+  notifications                 Boolean                  @default(true)
+  primary_color                 String?                  @db.VarChar(7)
+  secondary_color               String?                  @db.VarChar(7)
+  show_activity                 Boolean                  @default(false)
+  efficiency_factor             Decimal                  @default(1.00) @db.Decimal(4, 2)
+  driving_efficiency_factor     Decimal                  @default(1.00) @db.Decimal(4, 2)
+  first_time_only_on_empty_days Boolean                  @default(false)
+  unit                          unit?                    @relation(fields: [unit_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "unit_version_ibfk_1")
+  car                           car?                     @relation(fields: [car_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "unit_version_ibfk_3")
+  place                         place[]
+  unit_district                 unit_district[]
+  unit_expertise                unit_expertise[]
+  unit_version_error_log        unit_version_error_log[]
+
+  @@index([car_id], map: "car_id")
+  @@index([unit_id], map: "unit_id")
+}
+
+model unit_version_error_log {
+  id           BigInt       @id @default(autoincrement())
+  label        String       @db.VarChar(255)
+  error        String       @db.VarChar(50)
+  message      String       @db.VarChar(255)
+  created_at   DateTime?    @db.DateTime(0)
+  ref          BigInt
+  unit_version unit_version @relation(fields: [ref], references: [id], onDelete: Cascade, map: "unit_version_error_log_ibfk_1")
+
+  @@index([ref], map: "ref")
+}
+
+model user {
+  id                                                                  BigInt                           @id @default(autoincrement())
+  username                                                            String                           @unique(map: "username") @db.VarChar(255)
+  password                                                            String                           @db.VarChar(512)
+  role_id                                                             BigInt                           @default(3)
+  sub_role_id                                                         BigInt?
+  change_password                                                     Boolean                          @default(true)
+  active                                                              Boolean
+  notification_level                                                  Boolean                          @default(true)
+  deleted_at                                                          DateTime?                        @db.DateTime(0)
+  last_login                                                          DateTime?                        @db.DateTime(0)
+  last_login_ip                                                       Int?                             @db.UnsignedInt
+  security_upgraded                                                   Boolean                          @default(false)
+  last_pw_reset_req                                                   DateTime?                        @db.DateTime(0)
+  failed_login_attempts                                               Int                              @default(0)
+  last_failed_login_attempt                                           DateTime?                        @db.Timestamp(0)
+  locked                                                              Boolean                          @default(false)
+  comment                                                             comment[]
+  contract                                                            contract[]
+  maintenance_entry                                                   maintenance_entry[]
+  message_message_author_idTouser                                     message[]                        @relation("message_author_idTouser")
+  message_message_closer_idTouser                                     message[]                        @relation("message_closer_idTouser")
+  organization_direct_sales_user                                      organization_direct_sales_user[]
+  review_review_author_idTouser                                       review[]                         @relation("review_author_idTouser")
+  review_review_reply_author_idTouser                                 review[]                         @relation("review_reply_author_idTouser")
+  shopping_list                                                       shopping_list[]
+  sub_visit_sub_visit_inspected_byTouser                              sub_visit[]                      @relation("sub_visit_inspected_byTouser")
+  sub_visit_sub_visit_agent_idTouser                                  sub_visit[]                      @relation("sub_visit_agent_idTouser")
+  sub_visit_sub_visit_deal_closer_idTouser                            sub_visit[]                      @relation("sub_visit_deal_closer_idTouser")
+  sub_visit_sub_visit_resident_info_inpected_byTouser                 sub_visit[]                      @relation("sub_visit_resident_info_inpected_byTouser")
+  sub_visit_sub_visit_work_finish_message_read_byTouser               sub_visit[]                      @relation("sub_visit_work_finish_message_read_byTouser")
+  sub_visit_sub_visit_author_idTouser                                 sub_visit[]                      @relation("sub_visit_author_idTouser")
+  sub_visit_contact_log                                               sub_visit_contact_log[]          @ignore
+  sub_visit_status_log                                                sub_visit_status_log[]
+  sub_visit_version_sub_visit_version_agent_idTouser                  sub_visit_version[]              @relation("sub_visit_version_agent_idTouser")
+  sub_visit_version_sub_visit_version_deal_closer_idTouser            sub_visit_version[]              @relation("sub_visit_version_deal_closer_idTouser")
+  sub_visit_version_sub_visit_version_inspected_byTouser              sub_visit_version[]              @relation("sub_visit_version_inspected_byTouser")
+  sub_visit_version_sub_visit_version_resident_info_inpected_byTouser sub_visit_version[]              @relation("sub_visit_version_resident_info_inpected_byTouser")
+  support_case_support_case_handler_idTouser                          support_case[]                   @relation("support_case_handler_idTouser")
+  support_case_support_case_reporter_idTouser                         support_case[]                   @relation("support_case_reporter_idTouser")
+  support_case_assignees                                              support_case_assignees[]
+  user_certificate                                                    user_certificate[]               @ignore
+  user_comment_read                                                   user_comment_read[]
+  user_preferences                                                    user_preferences?
+  user_subordinate                                                    user_subordinate[]               @ignore
+  user_version                                                        user_version[]
+  visit                                                               visit[]
+}
+
+model user_bonus {
+  id              BigInt       @id @default(autoincrement())
+  user_version_id BigInt
+  bonus_type_id   BigInt
+  percent         Decimal      @db.Decimal(5, 2)
+  bonus_type      bonus_type   @relation(fields: [bonus_type_id], references: [id], onDelete: Cascade, map: "user_bonus_ibfk_1")
+  user_version    user_version @relation(fields: [user_version_id], references: [id], onDelete: Cascade, map: "user_bonus_ibfk_2")
+
+  @@index([bonus_type_id], map: "bonus_type_id")
+  @@index([user_version_id], map: "user_version_id")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model user_certificate {
+  user_id        BigInt
+  certificate_id BigInt
+  start_date     DateTime    @default(dbgenerated("('2019-01-01 00:00:00')")) @db.DateTime(0)
+  user           user        @relation(fields: [user_id], references: [id], onDelete: Cascade, map: "user_certificate_ibfk_1")
+  certificate    certificate @relation(fields: [certificate_id], references: [id], onDelete: Cascade, map: "user_certificate_ibfk_2")
+
+  @@index([user_id], map: "user_certificate_ibfk_1")
+  @@index([certificate_id], map: "user_certificate_ibfk_2")
+  @@ignore
+}
+
+model user_comment_read {
+  user_id    BigInt
+  comment_id BigInt
+  user       user    @relation(fields: [user_id], references: [id], onDelete: Cascade, map: "user_comment_read_ibfk_1")
+  comment    comment @relation(fields: [comment_id], references: [id], onDelete: Cascade, map: "user_comment_read_ibfk_2")
+
+  @@id([user_id, comment_id])
+  @@index([comment_id], map: "comment_id")
+  @@index([user_id], map: "user_id")
+}
+
+model user_expertise {
+  user_version_id BigInt
+  expertise_id    BigInt
+  user_version    user_version @relation(fields: [user_version_id], references: [id], onUpdate: Restrict, map: "user_expertise_ibfk_1")
+  expertise       expertise    @relation(fields: [expertise_id], references: [id], onUpdate: Restrict, map: "user_expertise_ibfk_2")
+
+  @@id([user_version_id, expertise_id])
+  @@index([expertise_id], map: "expertise_id")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model user_hash {
+  user_id    BigInt
+  hash       String   @db.VarChar(255)
+  expiration DateTime @db.DateTime(0)
+
+  @@ignore
+}
+
+model user_preferences {
+  user_id     BigInt  @id
+  preferences String? @db.LongText
+  user        user    @relation(fields: [user_id], references: [id], onDelete: Cascade, map: "user_preferences_ibfk_1")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model user_subordinate {
+  user_version_id BigInt
+  subordinate_id  BigInt
+  user_version    user_version @relation(fields: [user_version_id], references: [id], onDelete: Cascade, map: "user_subordinate_ibfk_1")
+  user            user         @relation(fields: [subordinate_id], references: [id], onDelete: Cascade, map: "user_subordinate_ibfk_2")
+
+  @@index([subordinate_id], map: "subordinate_version_id")
+  @@index([user_version_id], map: "user_version_id")
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model user_target {
+  user_version_id BigInt
+  target_id       BigInt
+  user_version    user_version @relation(fields: [user_version_id], references: [id], onDelete: Cascade, map: "user_target_ibfk_1")
+  target          target       @relation(fields: [target_id], references: [id], onDelete: Cascade, map: "user_target_ibfk_2")
+
+  @@index([target_id], map: "target_id")
+  @@index([user_version_id], map: "user_version_id")
+  @@ignore
+}
+
+model user_type {
+  id   BigInt @id @default(autoincrement())
+  name String @db.VarChar(255)
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model user_unit {
+  user_version_id BigInt
+  unit_id         BigInt
+  unit            unit         @relation(fields: [unit_id], references: [id], onDelete: Cascade, map: "user_unit_ibfk_1")
+  user_version    user_version @relation(fields: [user_version_id], references: [id], onDelete: Cascade, map: "user_unit_ibfk_2")
+
+  @@index([unit_id], map: "unit_id")
+  @@index([user_version_id], map: "user_version_id")
+  @@ignore
+}
+
+model user_version {
+  id                           BigInt                   @id @default(autoincrement())
+  user_id                      BigInt
+  version                      BigInt
+  firstname                    String                   @db.VarChar(255)
+  lastname                     String                   @db.VarChar(255)
+  phone_number                 String?                  @db.VarChar(32)
+  email                        String?                  @db.VarChar(255)
+  google_account_email         String?                  @db.VarChar(255)
+  address                      String?                  @db.VarChar(255)
+  post_number                  String?                  @db.VarChar(20)
+  city                         String?                  @db.VarChar(255)
+  bank_account_number          String                   @db.VarChar(255)
+  salary                       Float
+  salary_type                  Int                      @default(1)
+  employee_type                BigInt
+  primary_organization         BigInt?
+  version_starting_from        DateTime?                @db.DateTime(0)
+  starting_from                DateTime?                @db.DateTime(0)
+  ending_at                    DateTime?                @db.DateTime(0)
+  information                  String?                  @db.VarChar(255)
+  logo_id                      BigInt?
+  autograph_id                 BigInt?
+  vendor                       BigInt?
+  deleted_at                   DateTime?                @db.DateTime(0)
+  email_notification           BigInt?                  @default(1)
+  sms_notification             Boolean                  @default(true)
+  customer_id                  BigInt?
+  invoice_entity_id            BigInt?
+  clothing_gender              String?                  @db.VarChar(10)
+  shirt_size                   String?                  @db.VarChar(6)
+  glove_size                   String?                  @db.VarChar(6)
+  pants_width                  Decimal?                 @db.Decimal(4, 1)
+  pants_length                 Decimal?                 @db.Decimal(4, 1)
+  shoe_size                    Decimal?                 @db.Decimal(4, 1)
+  show_capacity                Boolean                  @default(false)
+  public                       Boolean                  @default(false)
+  show_unscheduled_work_orders Boolean                  @default(false)
+  hide_prices                  Boolean                  @default(false)
+  show_invoiced_figures        Boolean                  @default(false)
+  salary_period_start          Int?
+  unit_id                      BigInt?
+  books_for_self               Boolean                  @default(false)
+  image                        image?                   @relation(fields: [logo_id], references: [id], onUpdate: SetNull, map: "user_version_ibfk_1")
+  user                         user                     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "user_version_ibfk_2")
+  organization                 organization?            @relation(fields: [primary_organization], references: [id], onUpdate: SetNull, map: "user_version_ibfk_3")
+  customer                     customer?                @relation(fields: [customer_id], references: [id], onUpdate: SetNull, map: "user_version_ibfk_4")
+  invoice_entity               invoice_entity?          @relation(fields: [invoice_entity_id], references: [id], onUpdate: SetNull, map: "user_version_ibfk_5")
+  unit                         unit?                    @relation(fields: [unit_id], references: [id], map: "user_version_ibfk_6")
+  journal_entry                journal_entry[]
+  organization_user            organization_user[]
+  sale_shares                  sale_shares[]            @ignore
+  user_bonus                   user_bonus[]
+  user_expertise               user_expertise[]
+  user_subordinate             user_subordinate[]       @ignore
+  user_target                  user_target[]            @ignore
+  user_unit                    user_unit[]              @ignore
+  user_version_error_log       user_version_error_log[]
+
+  @@index([customer_id], map: "customer_id")
+  @@index([invoice_entity_id], map: "invoice_entity_id")
+  @@index([logo_id], map: "logo_id")
+  @@index([primary_organization], map: "primary_organization")
+  @@index([unit_id], map: "unit_id")
+  @@index([user_id], map: "user_id")
+}
+
+model user_version_error_log {
+  id           BigInt       @id @default(autoincrement())
+  label        String       @db.VarChar(255)
+  error        String       @db.VarChar(50)
+  message      String       @db.VarChar(255)
+  created_at   DateTime?    @db.DateTime(0)
+  ref          BigInt
+  user_version user_version @relation(fields: [ref], references: [id], onDelete: Cascade, map: "user_version_error_log_ibfk_1")
+
+  @@index([ref], map: "ref")
+}
+
+model variable {
+  id                    BigInt                  @id @default(autoincrement())
+  name                  String?                 @db.VarChar(255)
+  variable_name         String                  @db.VarChar(255)
+  value                 Float?                  @db.Float
+  created_at            DateTime?               @db.DateTime(0)
+  variable_organization variable_organization[] @ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model variable_organization {
+  variable_id     BigInt
+  organization_id BigInt
+  variable        variable     @relation(fields: [variable_id], references: [id], onDelete: Cascade, map: "variable_organization_ibfk_1")
+  organization    organization @relation(fields: [organization_id], references: [id], onDelete: Cascade, map: "variable_organization_ibfk_2")
+
+  @@index([organization_id], map: "organization_id")
+  @@index([variable_id, organization_id], map: "variable_id")
+  @@ignore
+}
+
+model vat {
+  id               BigInt             @id @default(autoincrement())
+  percent          Float              @db.Float
+  name             String             @db.Text
+  description      String?            @db.Text
+  default_vat      Boolean            @default(false)
+  lvis_net_product lvis_net_product[]
+}
+
+model vendor_order {
+  id                   BigInt                 @id @default(autoincrement())
+  vendor_id            BigInt
+  purchase_order_id    BigInt
+  state                BigInt
+  hash                 String                 @db.VarChar(255)
+  shipping_state       BigInt
+  shipping_date        DateTime?              @db.DateTime(0)
+  tracking_number      String?                @db.VarChar(255)
+  created_at           DateTime?              @db.DateTime(0)
+  updated_at           DateTime?              @db.DateTime(0)
+  product_vendor       product_vendor         @relation(fields: [vendor_id], references: [id], onDelete: Cascade, map: "vendor_order_ibfk_1")
+  purchase_order       purchase_order         @relation(fields: [purchase_order_id], references: [id], onDelete: Cascade, map: "vendor_order_ibfk_2")
+  product_vendor_order product_vendor_order[]
+
+  @@index([purchase_order_id], map: "purchase_order_id")
+  @@index([vendor_id, purchase_order_id], map: "vendor_id")
+  @@index([vendor_id], map: "vendor_id_2")
+}
+
+model visit {
+  id                 BigInt               @id @default(autoincrement())
+  name               String?              @db.VarChar(255)
+  contract_id        BigInt
+  date               DateTime?            @db.DateTime(0)
+  repeat_interval    BigInt?
+  active             Boolean              @default(false)
+  author_id          BigInt?
+  payer_id           BigInt?
+  memo               String?              @db.Text
+  state              BigInt?
+  invoice_state_id   BigInt?              @default(1)
+  created_at         DateTime             @default(now()) @db.DateTime(0)
+  menu_order         BigInt?
+  menu_selected      Boolean?
+  invoice_state      invoice_state?       @relation(fields: [invoice_state_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "visit_ibfk_1")
+  contract           contract             @relation(fields: [contract_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "visit_ibfk_2")
+  user               user?                @relation(fields: [author_id], references: [id], onUpdate: SetNull, map: "visit_ibfk_4")
+  customer           customer?            @relation(fields: [payer_id], references: [id], onDelete: Cascade, map: "visit_ibfk_5")
+  procountor_invoice procountor_invoice[]
+  purchase_order     purchase_order[]
+  sub_visit          sub_visit[]
+  sub_visit_version  sub_visit_version[]
+  visit_file         visit_file[]         @ignore
+
+  @@index([author_id], map: "author_id")
+  @@index([contract_id], map: "contract_id_idx")
+  @@index([invoice_state_id], map: "invoice_state_id")
+  @@index([payer_id], map: "payer_id")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model visit_file {
+  visit_id BigInt?
+  file_id  BigInt?
+  visit    visit?  @relation(fields: [visit_id], references: [id], onDelete: Cascade, map: "visit_file_ibfk_1")
+  file     file?   @relation(fields: [file_id], references: [id], onDelete: Cascade, map: "visit_file_ibfk_2")
+
+  @@index([file_id], map: "file_id")
+  @@index([visit_id, file_id], map: "visit_id")
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model visitor_action_log {
+  ip_address    Bytes    @db.VarBinary(16)
+  time          DateTime @default(now()) @db.DateTime(0)
+  action        String   @db.VarChar(32)
+  associated_id BigInt?
+  zip_code      String?  @db.VarChar(10)
+
+  @@ignore
+}
+
+model work_schedule_record {
+  id          BigInt    @id @default(autoincrement())
+  location    String?   @db.VarChar(255)
+  reason      String?   @db.VarChar(255)
+  type        String?   @db.VarChar(255)
+  start_date  DateTime? @db.DateTime(0)
+  end_date    DateTime? @db.DateTime(0)
+  external_id String?   @db.VarChar(255)
+  resource_id BigInt?
+  user_id     BigInt?
+  created_at  String    @db.VarChar(255)
+  title       String?   @db.VarChar(255)
+  subtype     Int?      @db.TinyInt
+  confirmed   Boolean   @default(false)
+
+  @@index([external_id], map: "external_id")
+}
+
+model marketing_campaign {
+  // This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  // 1 Int @default(autoincrement()) @map("1")
+  time DateTime @db.DateTime(0)
+  text String   @db.TinyText
+  tags String   @db.TinyText
 }

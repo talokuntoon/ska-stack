@@ -23,7 +23,7 @@ app.use((req, res, next) => {
 
 // if we're not in the primary region, then we need to make sure all
 // non-GET/HEAD/OPTIONS requests hit the primary region rather than read-only
-// Postgres DBs.
+// MariaDBs.
 // learn more: https://fly.io/docs/getting-started/multi-region-databases/#replay-the-request
 app.all("*", function getReplayResponse(req, res, next) {
   const { method, path: pathname } = req;

@@ -15,7 +15,7 @@ export default defineConfig({
     watchExclude: [
       ".*\\/node_modules\\/.*",
       ".*\\/build\\/.*",
-      ".*\\/postgres-data\\/.*",
+      ".*\\/mariadb-data\\/.*",
     ],
   },
 });

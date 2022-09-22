@@ -1,5 +1,5 @@
 {
-  "name": "blues-stack-template",
+  "name": "ska-stack-26a9",
   "private": true,
   "sideEffects": false,
   "scripts": {
@@ -31,7 +31,7 @@
     "/node_modules",
     "/build",
     "/public/build",
-    "/postgres-data"
+    "/mariadb-data"
   ],
   "dependencies": {
     "@prisma/client": "^4.3.1",

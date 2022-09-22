@@ -1,13 +1,17 @@
 version: "3.7"
 services:
-  postgres:
-    image: postgres:latest
+  mariadb:
+    image: ghcr.io/talokuntoon/tk-database:10.5.9
+    command: --sql_mode=""
+    container_name: mariadb
     restart: always
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=postgres
     ports:
-      - "5432:5432"
+      - 3306:3306
+    environment:
+      - MYSQL_DATABASE=${DB_NAME}
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - TZ="Europe/Helsinki"
     volumes:
-      - ./postgres-data:/var/lib/postgresql/data
+      - ./my.cnf:/etc/my.cnf
+      - ./mariadb-data:/var/lib/mysql:delegated

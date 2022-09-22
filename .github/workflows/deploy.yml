@@ -104,10 +104,10 @@ jobs:
           useLockFile: false
 
       - name: 🐳 Docker compose
-        # the sleep is just there to give time for postgres to get started
+        # the sleep is just there to give time for mariadb to get started
         run: docker-compose up -d && sleep 3
         env:
-          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/postgres"
+          DATABASE_URL: "mysql://root:root@mariadb/talokuntoon"
 
       - name: 🛠 Setup Database
         run: npx prisma migrate reset --force
