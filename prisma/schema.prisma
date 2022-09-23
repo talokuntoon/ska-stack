@@ -21,7 +21,7 @@ model access_token {
 model announcement {
   id          Int      @id @default(autoincrement())
   type        String   @db.VarChar(20)
-  title       String   @db.TinyText
+  title       String   @db.Text
   description String   @db.Text
   start       DateTime @db.Date
   end         DateTime @db.Date
@@ -31,7 +31,7 @@ model bonus_type {
   id          BigInt        @id @default(autoincrement())
   name        String        @db.VarChar(255)
   percent     Float
-  sale_shares sale_shares[] @ignore
+  sale_shares sale_shares[]
   user_bonus  user_bonus[]
 }
 
@@ -64,13 +64,14 @@ model buffered_invoice_product_row {
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+/// Bali Fixed - 22.09.2022
 model calendar_sync_settings {
   key_id String @db.VarChar(255)
   order  BigInt
   name   String @db.VarChar(255)
   value  String @db.VarChar(255)
 
-  @@ignore
+  @@id([key_id])
 }
 
 model car {
@@ -147,7 +148,7 @@ model certificate {
   name             String             @db.TinyText
   description      String?            @db.Text
   validity_period  Int?
-  user_certificate user_certificate[] @ignore
+  user_certificate user_certificate[]
 }
 
 model comment {
@@ -238,10 +239,10 @@ model contract_comments {
   parent_id      BigInt?
   signer_id      BigInt?
   checked_date   DateTime?  @db.DateTime(0)
-  send_to        String?    @db.TinyText
+  send_to        String?    @db.VarChar(256)
   email_subject  String?    @db.Text
-  send_to_number String?    @db.TinyText
-  response_hash  String?    @db.TinyText
+  send_to_number String?    @db.VarChar(20)
+  response_hash  String?    @db.VarChar(1024)
   sub_visit_id   BigInt?
   sent_from_sms  Boolean?   @default(false)
   sub_visit      sub_visit? @relation(fields: [sub_visit_id], references: [id], onDelete: Cascade, map: "contract_comments_ibfk_1")
@@ -359,13 +360,14 @@ model customer_status {
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+/// Bali Fixed - 22.09.2022
 model disk_space_log {
   size      BigInt
   used      BigInt
   available BigInt
   time      DateTime @default(now()) @db.Timestamp(0)
 
-  @@ignore
+  @@id([time])
 }
 
 model distance_matrix {
@@ -402,8 +404,8 @@ model district {
   organization_id         BigInt
   permission              BigInt                    @default(0)
   district_error_log      district_error_log[]
-  district_product_factor district_product_factor[] @ignore
-  organization_district   organization_district[]   @ignore
+  district_product_factor district_product_factor[]
+  organization_district   organization_district[]
   purchase_order          purchase_order[]
   unit_district           unit_district[]
 
@@ -431,20 +433,21 @@ model district_error_log {
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+/// Bali Fixed - 22.09.2022
 model district_product_factor {
   district_id        BigInt
   product_id         BigInt?
-  product_version_id BigInt?
+  product_version_id BigInt
   factor             Decimal          @default(0.000000) @db.Decimal(10, 6)
   updated_at         DateTime         @default(now()) @db.Timestamp(0)
   district           district         @relation(fields: [district_id], references: [id], onDelete: Cascade, map: "district_product_factor_ibfk_1")
   product            product?         @relation(fields: [product_id], references: [id], onDelete: Cascade, map: "district_product_factor_ibfk_2")
   product_version    product_version? @relation(fields: [product_version_id], references: [id], onDelete: Cascade, map: "district_product_factor_ibfk_3")
 
+  @@id([district_id, product_version_id])
   @@unique([district_id, product_id], map: "district_id")
   @@index([product_id], map: "product_id")
   @@index([product_version_id], map: "product_version_id")
-  @@ignore
 }
 
 model dynamic_parameters {
@@ -516,7 +519,7 @@ model expertise {
   created_at         DateTime             @db.DateTime(0)
   car_expertise      car_expertise[]
   product_expertise  product_expertise[]
-  question_expertise question_expertise[] @ignore
+  question_expertise question_expertise[]
   unit_expertise     unit_expertise[]
   user_expertise     user_expertise[]
 }
@@ -527,7 +530,7 @@ model expertise_question {
   text                      String?                     @db.Text
   image_id                  BigInt?
   expertise_question_answer expertise_question_answer[]
-  question_expertise        question_expertise[]        @ignore
+  question_expertise        question_expertise[]
 }
 
 model expertise_question_answer {
@@ -558,8 +561,8 @@ model file {
   contract_internal_file contract_internal_file[]
   other_file             file[]                   @relation("fileTofile")
   message_files          message_files[]
-  product_row_file       product_row_file[]       @ignore
-  sub_visit_file         sub_visit_file[]         @ignore
+  product_row_file       product_row_file[]
+  sub_visit_file         sub_visit_file[]
   sub_visit_image_new    sub_visit_image_new[]
   visit_file             visit_file[]             @ignore
 
@@ -695,7 +698,7 @@ model invoice_log {
   product_net_pure_total     Decimal?      @db.Decimal(12, 2)
   created_at                 DateTime      @default(now()) @db.DateTime(0)
   sub_visit                  sub_visit?    @relation(fields: [sub_visit_id], references: [id], map: "invoice_log_ibfk_1")
-  sale_shares                sale_shares[] @ignore
+  sale_shares                sale_shares[]
 
   @@index([sub_visit_id], map: "sub_visit_id")
 }
@@ -844,7 +847,7 @@ model ledger_setting {
   name   String @db.VarChar(255)
   value  String @db.VarChar(255)
 
-  @@ignore
+  @@id([key_id])
 }
 
 model location {
@@ -857,6 +860,7 @@ model location {
   name            String  @default("") @db.TinyText
   custom_name     String? @db.VarChar(128)
   type            String  @db.VarChar(20)
+  updated_at      DateTime @db.DateTime(0)
 }
 
 model lvis_net_product {
@@ -923,23 +927,25 @@ model message_files {
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+/// Bali Fixed - 22.09.2022
 model offer_reminder_delay {
   delayed_on      DateTime      @db.Date
-  organization_id BigInt?
+  organization_id BigInt
   organization    organization? @relation(fields: [organization_id], references: [id], onDelete: Cascade, map: "offer_reminder_delay_ibfk_1")
 
+  @@id([organization_id, delayed_on])
   @@index([organization_id], map: "organization_id")
-  @@ignore
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+/// Bali Fixed - 22.09.2022
 model offer_reminders {
   sub_visit_id BigInt
   time         DateTime  @default(now()) @db.DateTime(0)
   sub_visit    sub_visit @relation(fields: [sub_visit_id], references: [id], onDelete: Cascade, map: "offer_reminders_ibfk_1")
 
+  @@id([sub_visit_id, time])
   @@index([sub_visit_id], map: "sub_visit_id")
-  @@ignore
 }
 
 model offer_status {
@@ -1045,10 +1051,10 @@ model organization {
   product_vendor                  product_vendor?                  @relation(fields: [product_vendor_id], references: [id], map: "organization_ibfk_3")
   contract                        contract[]
   invoice                         invoice[]
-  offer_reminder_delay            offer_reminder_delay[]           @ignore
+  offer_reminder_delay            offer_reminder_delay[]
   organization_car                organization_car[]
   organization_direct_sales_user  organization_direct_sales_user[]
-  organization_district           organization_district[]          @ignore
+  organization_district           organization_district[]
   organization_error_log          organization_error_log[]
   organization_offer_reminder     organization_offer_reminder?
   organization_user               organization_user[]
@@ -1056,7 +1062,8 @@ model organization {
   stock                           stock[]
   sub_visit                       sub_visit[]
   user_version                    user_version[]
-  variable_organization           variable_organization[]          @ignore
+  variable_organization           variable_organization[]
+  visitor_action_log              visitor_action_log[]
 
   @@index([contract_id], map: "contract_id")
   @@index([logo_id], map: "logo_id_2")
@@ -1088,18 +1095,20 @@ model organization_direct_sales_user {
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+/// Bali Fixed - 22.09.2022
 model organization_district {
   organization_id BigInt
   district_id     BigInt
   organization    organization @relation(fields: [organization_id], references: [id], onDelete: Cascade, map: "organization_district_ibfk_1")
   district        district     @relation(fields: [district_id], references: [id], onDelete: Cascade, map: "organization_district_ibfk_2")
 
+  @@id([organization_id, district_id])
   @@index([district_id], map: "district_id")
   @@index([organization_id], map: "organization_id")
-  @@ignore
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+/// Bali Fixed - 22.09.2022
 model organization_dynamicparameter {
   id                  BigInt
   organization_id     BigInt
@@ -1107,7 +1116,7 @@ model organization_dynamicparameter {
   default_value       String? @db.Text
   parameter_type      BigInt?
 
-  @@ignore
+  @@id([id])
 }
 
 model organization_error_log {
@@ -1423,8 +1432,8 @@ model product {
   product_code            String?                   @db.VarChar(255)
   type                    Int?
   deleted_at              DateTime?                 @db.DateTime(0)
-  district_product_factor district_product_factor[] @ignore
-  product_vendor_products product_vendor_products[] @ignore
+  district_product_factor district_product_factor[]
+  product_vendor_products product_vendor_products[]
   product_version         product_version[]
   shopping_list_product   shopping_list_product[]
   stock_product           stock_product[]
@@ -1479,7 +1488,7 @@ model product_row {
   product_version              product_version?              @relation(fields: [product_version_id], references: [id], map: "product_row_ibfk_8")
   buffered_invoice_product_row buffered_invoice_product_row?
   comment_product_row          comment_product_row[]
-  product_row_file             product_row_file[]            @ignore
+  product_row_file             product_row_file[]
   product_row_sub_visit        product_row_sub_visit[]
 
   @@index([parent_id], map: "parent_id")
@@ -1488,15 +1497,16 @@ model product_row {
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+/// Bali Fixed - 22.09.2022
 model product_row_file {
   product_row_id BigInt
   file_id        BigInt
   file           file        @relation(fields: [file_id], references: [id], onDelete: Cascade, map: "product_row_file_ibfk_1")
   product_row    product_row @relation(fields: [product_row_id], references: [id], onDelete: Cascade, map: "product_row_file_ibfk_2")
 
+  @@id([product_row_id, file_id])
   @@index([file_id], map: "file_id")
   @@index([product_row_id], map: "product_row_id")
-  @@ignore
 }
 
 model product_row_sub_visit {
@@ -1591,7 +1601,7 @@ model product_vendor {
   organization                  organization[]
   proco_invoice                 proco_invoice[]
   product_vendor_error_log      product_vendor_error_log[]
-  product_vendor_products       product_vendor_products[]  @ignore
+  product_vendor_products       product_vendor_products[]
   product_version               product_version[]
   vendor_order                  vendor_order[]
 }
@@ -1636,15 +1646,16 @@ model product_vendor_order {
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+/// Bali Fixed - 22.09.2022
 model product_vendor_products {
-  vendor_id      BigInt?
-  product_id     BigInt?
+  vendor_id      BigInt
+  product_id     BigInt
   product_vendor product_vendor? @relation(fields: [vendor_id], references: [id], onDelete: Cascade, map: "product_vendor_products_ibfk_1")
   product        product?        @relation(fields: [product_id], references: [id], onDelete: Cascade, map: "product_vendor_products_ibfk_2")
 
+  @@id([vendor_id, product_id])
   @@index([product_id], map: "product_id")
   @@index([vendor_id, product_id], map: "vendor_id")
-  @@ignore
 }
 
 model product_version {
@@ -1691,7 +1702,7 @@ model product_version {
   product_vendor_product_vendorToproduct_version product_vendor?             @relation(fields: [product_vendor], references: [id], onUpdate: NoAction, map: "product_version_ibfk_6")
   product                                        product                     @relation(fields: [product_id], references: [id], onUpdate: Restrict, map: "product_version_ibfk_7")
   product_group                                  product_group?              @relation(fields: [state], references: [id], onUpdate: NoAction, map: "product_version_ibfk_8")
-  district_product_factor                        district_product_factor[]   @ignore
+  district_product_factor                        district_product_factor[]
   product_expertise                              product_expertise[]
   product_row                                    product_row[]
   product_row_version                            product_row_version[]
@@ -1778,15 +1789,16 @@ model purchase_order_type {
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+/// Bali Fixed - 22.09.2022
 model question_expertise {
   expertise_id       BigInt
   question_id        BigInt
   expertise          expertise          @relation(fields: [expertise_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "question_expertise_ibfk_1")
   expertise_question expertise_question @relation(fields: [question_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "question_expertise_ibfk_2")
 
+  @@id([expertise_id, question_id])
   @@index([expertise_id, question_id], map: "expertise_id")
   @@index([question_id], map: "question_id")
-  @@ignore
 }
 
 model radon_lab_order {
@@ -1835,7 +1847,7 @@ model review {
   sub_visit                         sub_visit                   @relation(fields: [subvisit_id], references: [id], onDelete: Cascade, map: "review_ibfk_2")
   user_review_author_idTouser       user?                       @relation("review_author_idTouser", fields: [author_id], references: [id], onUpdate: NoAction, map: "review_ibfk_3")
   user_review_reply_author_idTouser user?                       @relation("review_reply_author_idTouser", fields: [reply_author_id], references: [id], onUpdate: NoAction, map: "review_ibfk_4")
-  review_template_sub_visit         review_template_sub_visit[] @ignore
+  review_template_sub_visit         review_template_sub_visit[]
 
   @@index([author_id], map: "author_id")
   @@index([reply_author_id], map: "reply_author_id")
@@ -1843,6 +1855,7 @@ model review {
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+/// Bali Fixed - 22.09.2022
 model review_summary {
   subvisit_id BigInt
   reviews     Int
@@ -1851,20 +1864,21 @@ model review_summary {
   updated_at  DateTime  @default(now()) @db.DateTime(0)
   sub_visit   sub_visit @relation(fields: [subvisit_id], references: [id], onDelete: Cascade, map: "review_summary_ibfk_1")
 
+  @@id([subvisit_id])
   @@index([subvisit_id], map: "review_summary_ibfk_1")
-  @@ignore
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+/// Bali Fixed - 22.09.2022
 model review_template_sub_visit {
   subvisit_id BigInt
   review_id   BigInt
   sub_visit   sub_visit @relation(fields: [subvisit_id], references: [id], onDelete: Cascade, map: "review_template_sub_visit_ibfk_1")
   review      review    @relation(fields: [review_id], references: [id], onDelete: Cascade, map: "review_template_sub_visit_ibfk_2")
 
+  @@id([subvisit_id, review_id])
   @@index([review_id], map: "review_id")
   @@index([subvisit_id], map: "subvisit_id")
-  @@ignore
 }
 
 model role {
@@ -1875,30 +1889,22 @@ model role {
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+/// Bali Fixed - 22.09.2022
 model sale_shares {
   user_version_id BigInt
-  invoice_log_id  BigInt?
+  invoice_log_id  BigInt
   percent         Decimal      @db.Decimal(5, 2)
   time_share      Decimal      @db.Decimal(5, 2)
   withdrawn_at    DateTime?    @db.DateTime(0)
-  bonus_type_id   BigInt?
+  bonus_type_id   BigInt
   bonus_type      bonus_type?  @relation(fields: [bonus_type_id], references: [id], map: "sale_shares_ibfk_1")
   invoice_log     invoice_log? @relation(fields: [invoice_log_id], references: [id], map: "sale_shares_ibfk_2")
   user_version    user_version @relation(fields: [user_version_id], references: [id], onDelete: Cascade, map: "sale_shares_ibfk_3")
 
+  @@id([user_version_id, invoice_log_id, bonus_type_id])
   @@index([invoice_log_id], map: "invoice_log_id")
   @@index([bonus_type_id], map: "sale_shares_ibfk_1")
   @@index([user_version_id], map: "user_version_id")
-  @@ignore
-}
-
-/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
-model schedule {
-  key_id String @db.VarChar(255)
-  name   String @db.VarChar(255)
-  value  String @db.VarChar(255)
-
-  @@ignore
 }
 
 model scheduled_payment {
@@ -2155,20 +2161,20 @@ model sub_visit {
   custom_product_row                                    custom_product_row[]
   invoice_log                                           invoice_log?
   invoice_row                                           invoice_row[]
-  offer_reminders                                       offer_reminders[]           @ignore
+  offer_reminders                                       offer_reminders[]
   procountor_invoice                                    procountor_invoice[]
   product_row                                           product_row[]
   product_row_sub_visit                                 product_row_sub_visit[]
   product_row_version                                   product_row_version[]
   radon_lab_order                                       radon_lab_order?
   review                                                review[]
-  review_summary                                        review_summary[]            @ignore
-  review_template_sub_visit                             review_template_sub_visit[] @ignore
+  review_summary                                        review_summary[]
+  review_template_sub_visit                             review_template_sub_visit[]
   other_sub_visit_sub_visitTosub_visit_parent_id        sub_visit[]                 @relation("sub_visitTosub_visit_parent_id")
   other_sub_visit_sub_visitTosub_visit_subvisit_id      sub_visit[]                 @relation("sub_visitTosub_visit_subvisit_id")
   other_sub_visit_sub_visitTosub_visit_recurring_parent sub_visit[]                 @relation("sub_visitTosub_visit_recurring_parent")
-  sub_visit_contact_log                                 sub_visit_contact_log[]     @ignore
-  sub_visit_file                                        sub_visit_file[]            @ignore
+  sub_visit_contact_log                                 sub_visit_contact_log[]
+  sub_visit_file                                        sub_visit_file[]
   sub_visit_status_log                                  sub_visit_status_log[]
   sub_visit_version                                     sub_visit_version[]
   support_case                                          support_case[]
@@ -2194,6 +2200,7 @@ model sub_visit {
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+/// Bali Fixed - 22.09.2022
 model sub_visit_contact_log {
   sub_visit_id BigInt
   user_id      BigInt?
@@ -2203,21 +2210,22 @@ model sub_visit_contact_log {
   sub_visit    sub_visit @relation(fields: [sub_visit_id], references: [id], onDelete: Cascade, map: "sub_visit_contact_log_ibfk_1")
   user         user?     @relation(fields: [user_id], references: [id], onDelete: Cascade, map: "sub_visit_contact_log_ibfk_2")
 
+  @@id([sub_visit_id, time])
   @@index([sub_visit_id], map: "sub_visit_id")
   @@index([user_id], map: "user_id")
-  @@ignore
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+/// Bali Fixed - 22.09.2022
 model sub_visit_file {
-  sub_visit_id BigInt?
-  file_id      BigInt?
-  sub_visit    sub_visit? @relation(fields: [sub_visit_id], references: [id], onDelete: Cascade, map: "sub_visit_file_ibfk_1")
-  file         file?      @relation(fields: [file_id], references: [id], onDelete: Cascade, map: "sub_visit_file_ibfk_2")
+  sub_visit_id BigInt
+  file_id      BigInt
+  sub_visit    sub_visit  @relation(fields: [sub_visit_id], references: [id], onDelete: Cascade, map: "sub_visit_file_ibfk_1")
+  file         file       @relation(fields: [file_id], references: [id], onDelete: Cascade, map: "sub_visit_file_ibfk_2")
 
+  @@id([sub_visit_id, file_id])
   @@index([file_id], map: "file_id")
   @@index([sub_visit_id, file_id], map: "sub_visit_id")
-  @@ignore
 }
 
 model sub_visit_image_new {
@@ -2434,7 +2442,7 @@ model target {
   condonium                    condonium?    @relation(fields: [condonium_id], references: [id], onUpdate: SetNull, map: "target_ibfk_2")
   contract                     contract[]
   sub_target                   sub_target[]
-  user_target                  user_target[] @ignore
+  user_target                  user_target[]
 
   @@index([condonium_id], map: "condonium_id")
   @@index([customer_id], map: "customer_id")
@@ -2482,6 +2490,7 @@ model team {
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+/// Bali Fixed - 22.09.2022
 model time_reservation {
   start             DateTime @db.DateTime(0)
   end               DateTime @db.DateTime(0)
@@ -2491,10 +2500,11 @@ model time_reservation {
   created_at        DateTime @default(now()) @db.DateTime(0)
   reservation_token String?  @db.VarChar(64)
 
-  @@ignore
+  @@id([unit_id,created_at])
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+/// Bali Fixed - 22.09.2022
 model token_blacklist {
   jwt        String   @db.VarChar(1024)
   created_at DateTime @default(now()) @db.DateTime(0)
@@ -2552,7 +2562,7 @@ model unit {
   sub_visit_status_log_sub_visit_status_log_prev_unit_idTounit sub_visit_status_log[] @relation("sub_visit_status_log_prev_unit_idTounit")
   sub_visit_status_log_sub_visit_status_log_next_unit_idTounit sub_visit_status_log[] @relation("sub_visit_status_log_next_unit_idTounit")
   unit_version                                                 unit_version[]
-  user_unit                                                    user_unit[]            @ignore
+  user_unit                                                    user_unit[]
   user_version                                                 user_version[]
 }
 
@@ -2630,7 +2640,7 @@ model user {
   role_id                                                             BigInt                           @default(3)
   sub_role_id                                                         BigInt?
   change_password                                                     Boolean                          @default(true)
-  active                                                              Boolean
+  active                                                              Boolean                          @default(true)
   notification_level                                                  Boolean                          @default(true)
   deleted_at                                                          DateTime?                        @db.DateTime(0)
   last_login                                                          DateTime?                        @db.DateTime(0)
@@ -2655,7 +2665,7 @@ model user {
   sub_visit_sub_visit_resident_info_inpected_byTouser                 sub_visit[]                      @relation("sub_visit_resident_info_inpected_byTouser")
   sub_visit_sub_visit_work_finish_message_read_byTouser               sub_visit[]                      @relation("sub_visit_work_finish_message_read_byTouser")
   sub_visit_sub_visit_author_idTouser                                 sub_visit[]                      @relation("sub_visit_author_idTouser")
-  sub_visit_contact_log                                               sub_visit_contact_log[]          @ignore
+  sub_visit_contact_log                                               sub_visit_contact_log[]
   sub_visit_status_log                                                sub_visit_status_log[]
   sub_visit_version_sub_visit_version_agent_idTouser                  sub_visit_version[]              @relation("sub_visit_version_agent_idTouser")
   sub_visit_version_sub_visit_version_deal_closer_idTouser            sub_visit_version[]              @relation("sub_visit_version_deal_closer_idTouser")
@@ -2664,12 +2674,13 @@ model user {
   support_case_support_case_handler_idTouser                          support_case[]                   @relation("support_case_handler_idTouser")
   support_case_support_case_reporter_idTouser                         support_case[]                   @relation("support_case_reporter_idTouser")
   support_case_assignees                                              support_case_assignees[]
-  user_certificate                                                    user_certificate[]               @ignore
+  user_certificate                                                    user_certificate[]
   user_comment_read                                                   user_comment_read[]
   user_preferences                                                    user_preferences?
-  user_subordinate                                                    user_subordinate[]               @ignore
+  user_subordinate                                                    user_subordinate[]
   user_version                                                        user_version[]
   visit                                                               visit[]
+  visitor_action_log                                                  visitor_action_log[]
 }
 
 model user_bonus {
@@ -2685,6 +2696,7 @@ model user_bonus {
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+/// Bali Fixed - 22.09.2022
 model user_certificate {
   user_id        BigInt
   certificate_id BigInt
@@ -2692,9 +2704,9 @@ model user_certificate {
   user           user        @relation(fields: [user_id], references: [id], onDelete: Cascade, map: "user_certificate_ibfk_1")
   certificate    certificate @relation(fields: [certificate_id], references: [id], onDelete: Cascade, map: "user_certificate_ibfk_2")
 
+  @@id([user_id, certificate_id])
   @@index([user_id], map: "user_certificate_ibfk_1")
   @@index([certificate_id], map: "user_certificate_ibfk_2")
-  @@ignore
 }
 
 model user_comment_read {
@@ -2719,12 +2731,13 @@ model user_expertise {
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+/// Bali Fixed - 22.09.2022
 model user_hash {
   user_id    BigInt
   hash       String   @db.VarChar(255)
   expiration DateTime @db.DateTime(0)
 
-  @@ignore
+  @@id([user_id, hash])
 }
 
 model user_preferences {
@@ -2734,27 +2747,29 @@ model user_preferences {
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+/// Bali Fixed - 22.09.2022
 model user_subordinate {
   user_version_id BigInt
   subordinate_id  BigInt
   user_version    user_version @relation(fields: [user_version_id], references: [id], onDelete: Cascade, map: "user_subordinate_ibfk_1")
   user            user         @relation(fields: [subordinate_id], references: [id], onDelete: Cascade, map: "user_subordinate_ibfk_2")
 
+  @@id([subordinate_id, user_version_id])
   @@index([subordinate_id], map: "subordinate_version_id")
   @@index([user_version_id], map: "user_version_id")
-  @@ignore
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+/// Bali Fixed - 22.09.2022
 model user_target {
   user_version_id BigInt
   target_id       BigInt
   user_version    user_version @relation(fields: [user_version_id], references: [id], onDelete: Cascade, map: "user_target_ibfk_1")
   target          target       @relation(fields: [target_id], references: [id], onDelete: Cascade, map: "user_target_ibfk_2")
 
+  @@id([target_id, user_version_id])
   @@index([target_id], map: "target_id")
   @@index([user_version_id], map: "user_version_id")
-  @@ignore
 }
 
 model user_type {
@@ -2763,15 +2778,16 @@ model user_type {
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+/// Bali Fixed - 22.09.2022
 model user_unit {
   user_version_id BigInt
   unit_id         BigInt
   unit            unit         @relation(fields: [unit_id], references: [id], onDelete: Cascade, map: "user_unit_ibfk_1")
   user_version    user_version @relation(fields: [user_version_id], references: [id], onDelete: Cascade, map: "user_unit_ibfk_2")
 
+  @@id([unit_id, user_version_id])
   @@index([unit_id], map: "unit_id")
   @@index([user_version_id], map: "user_version_id")
-  @@ignore
 }
 
 model user_version {
@@ -2825,12 +2841,12 @@ model user_version {
   unit                         unit?                    @relation(fields: [unit_id], references: [id], map: "user_version_ibfk_6")
   journal_entry                journal_entry[]
   organization_user            organization_user[]
-  sale_shares                  sale_shares[]            @ignore
+  sale_shares                  sale_shares[]
   user_bonus                   user_bonus[]
   user_expertise               user_expertise[]
-  user_subordinate             user_subordinate[]       @ignore
-  user_target                  user_target[]            @ignore
-  user_unit                    user_unit[]              @ignore
+  user_subordinate             user_subordinate[]
+  user_target                  user_target[]
+  user_unit                    user_unit[]
   user_version_error_log       user_version_error_log[]
 
   @@index([customer_id], map: "customer_id")
@@ -2859,19 +2875,20 @@ model variable {
   variable_name         String                  @db.VarChar(255)
   value                 Float?                  @db.Float
   created_at            DateTime?               @db.DateTime(0)
-  variable_organization variable_organization[] @ignore
+  variable_organization variable_organization[]
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+/// Bali Fixed - 22.09.2022
 model variable_organization {
   variable_id     BigInt
   organization_id BigInt
   variable        variable     @relation(fields: [variable_id], references: [id], onDelete: Cascade, map: "variable_organization_ibfk_1")
   organization    organization @relation(fields: [organization_id], references: [id], onDelete: Cascade, map: "variable_organization_ibfk_2")
 
+  @@id([variable_id, organization_id])
   @@index([organization_id], map: "organization_id")
   @@index([variable_id, organization_id], map: "variable_id")
-  @@ignore
 }
 
 model vat {
@@ -2943,18 +2960,26 @@ model visit_file {
 
   @@index([file_id], map: "file_id")
   @@index([visit_id, file_id], map: "visit_id")
+
   @@ignore
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+/// Bali Fixed - 22.09.2022
 model visitor_action_log {
-  ip_address    Bytes    @db.VarBinary(16)
-  time          DateTime @default(now()) @db.DateTime(0)
-  action        String   @db.VarChar(32)
-  associated_id BigInt?
-  zip_code      String?  @db.VarChar(10)
+  ip_address      Bytes         @db.VarBinary(16)
+  user_id         BigInt?
+  session_id      String?       @db.VarChar(255)
+  time            DateTime      @default(now()) @db.Timestamp(6)
+  action          String        @db.VarChar(32)
+  associated_id   BigInt?
+  zip_code        String?       @db.VarChar(10)
+  organization_id BigInt?
+  organization    organization? @relation(fields: [organization_id], references: [id], onDelete: SetNull, onUpdate: Cascade, map: "visitor_action_log_ibfk_1")
+  user            user?         @relation(fields: [user_id], references: [id], onDelete: SetNull, onUpdate: Cascade, map: "visitor_action_log_ibfk_2")
 
-  @@ignore
+  @@id([ip_address,time,action])
+  @@index([user_id], map: "user_id_idx")
 }
 
 model work_schedule_record {
@@ -2973,12 +2998,4 @@ model work_schedule_record {
   confirmed   Boolean   @default(false)
 
   @@index([external_id], map: "external_id")
-}
-
-model marketing_campaign {
-  // This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
-  // 1 Int @default(autoincrement()) @map("1")
-  time DateTime @db.DateTime(0)
-  text String   @db.TinyText
-  tags String   @db.TinyText
 }
